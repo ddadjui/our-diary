@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>우리 가계부 💑</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Noto Sans KR',sans-serif;background:#f8f9fa;color:#333;min-height:100vh;overflow-x:hidden}
+:root{
+  --pink:#FF8FAB;--blue:#89C4E1;--mint:#7DCFB6;
+  --pink-light:#fff0f3;--blue-light:#eaf5fb;--mint-light:#edfaf6;
+  --gray:#888;--gray-light:#f0f0f0;--white:#fff;
+  --nav-h:64px;--header-h:56px;
+}
+
+/* ───── Layout ───── */
+#app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+#header{height:var(--header-h);background:var(--white);display:flex;align-items:center;justify-content:space-between;padding:0 16px;box-shadow:0 1px 4px rgba(0,0,0,.08);z-index:100;flex-shrink:0}
+#header h1{font-size:18px;font-weight:700;color:var(--pink)}
+#header .header-right{display:flex;gap:8px}
+#header button{background:none;border:none;font-size:20px;cursor:pointer;padding:4px}
+#page-area{flex:1;overflow-y:auto;padding-bottom:calc(var(--nav-h)+8px)}
+#nav{height:var(--nav-h);background:var(--white);display:flex;position:fixed;bottom:0;left:0;right:0;box-shadow:0 -1px 8px rgba(0,0,0,.1);z-index:100}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:none;cursor:pointer;font-size:9px;color:var(--gray);transition:.15s;padding:6px 0}
+.nav-btn .nav-icon{font-size:22px;line-height:1}
+.nav-btn.active{color:var(--pink)}
+.nav-btn.active .nav-icon{transform:scale(1.12)}
+
+/* ───── Pages ───── */
+.page{display:none;padding:12px}
+.page.active{display:block}
+
+/* ───── Sub-tabs ───── */
+.sub-tabs{display:flex;background:var(--gray-light);border-radius:12px;padding:3px;margin-bottom:12px}
+.sub-tab{flex:1;text-align:center;padding:7px 4px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;color:var(--gray);transition:.15s}
+.sub-tab.active{background:var(--white);color:var(--pink);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+
+/* ───── Month Nav ───── */
+.month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:4px 0}
+.month-nav button{background:none;border:none;font-size:22px;cursor:pointer;color:var(--gray);padding:4px 8px}
+.month-nav span{font-size:17px;font-weight:700}
+
+/* ───── Summary Card ───── */
+.summary-card{background:var(--white);border-radius:16px;padding:14px 18px;margin-bottom:12px;box-shadow:0 1px 6px rgba(0,0,0,.07)}
+.summary-card .label{font-size:12px;color:var(--gray);margin-bottom:4px}
+.summary-card .amount{font-size:22px;font-weight:700;color:var(--pink)}
+
+/* ───── Calendar ───── */
+.cal-wrap{background:var(--white);border-radius:16px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.07)}
+.cal-head{display:grid;grid-template-columns:repeat(7,1fr);background:var(--gray-light)}
+.cal-head span{text-align:center;padding:6px 0;font-size:11px;font-weight:700;color:var(--gray)}
+.cal-head span:first-child{color:#e05555}
+.cal-head span:last-child{color:var(--blue)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr)}
+.cal-cell{min-height:56px;border-top:1px solid #f0f0f0;border-right:1px solid #f0f0f0;padding:3px 3px 3px 4px;cursor:pointer;position:relative;overflow:hidden;transition:.12s}
+.cal-cell:hover{background:#fafafa}
+.cal-cell.empty{background:#fafafa;cursor:default}
+.cal-cell:nth-child(7n){border-right:none}
+.cal-day{font-size:12px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%}
+.cal-cell.sun .cal-day{color:#e05555}
+.cal-cell.sat .cal-day{color:var(--blue)}
+.cal-cell.today .cal-day{background:var(--pink);color:#fff}
+.cal-preview{font-size:9px;color:var(--gray);line-height:1.35;margin-top:1px;overflow:hidden;max-height:28px;word-break:keep-all}
+.cal-preview .preview-amt{font-size:9px;font-weight:700;color:var(--pink)}
+.cal-preview .preview-meal{color:var(--mint);font-weight:500}
+.cal-preview .preview-sched{color:var(--blue)}
+
+/* ───── FAB ───── */
+.fab{position:fixed;bottom:calc(var(--nav-h)+16px);right:16px;width:52px;height:52px;border-radius:50%;background:var(--pink);color:#fff;border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 12px rgba(255,143,171,.5);display:flex;align-items:center;justify-content:center;z-index:90;transition:.15s}
+.fab:active{transform:scale(.93)}
+
+/* ───── Modal Overlay ───── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.overlay.active{display:flex}
+.sheet{background:var(--white);border-radius:20px 20px 0 0;width:100%;max-height:92vh;overflow-y:auto;padding:20px 16px 32px;animation:slideUp .25s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sheet-handle{width:36px;height:4px;background:#ddd;border-radius:2px;margin:0 auto 16px}
+.sheet h2{font-size:17px;font-weight:700;margin-bottom:14px}
+.sheet h3{font-size:15px;font-weight:600;margin-bottom:8px;color:var(--gray)}
+
+/* ───── Form Elements ───── */
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:12px;color:var(--gray);margin-bottom:5px;font-weight:500}
+.form-group input,.form-group textarea,.form-group select{width:100%;border:1.5px solid #e0e0e0;border-radius:10px;padding:10px 12px;font-size:15px;font-family:'Noto Sans KR',sans-serif;outline:none;transition:.15s;background:var(--white)}
+.form-group input:focus,.form-group textarea:focus{border-color:var(--pink)}
+.form-group textarea{min-height:100px;resize:vertical}
+
+/* ───── Category Chips ───── */
+.cat-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.cat-chip{border:1.5px solid #e0e0e0;background:var(--white);border-radius:20px;padding:5px 10px;font-size:12px;cursor:pointer;transition:.15s;font-family:'Noto Sans KR',sans-serif}
+.cat-chip.selected{border-color:var(--pink);background:var(--pink-light);color:var(--pink);font-weight:600}
+
+/* ───── Buttons ───── */
+.btn{display:inline-flex;align-items:center;justify-content:center;border:none;border-radius:12px;padding:12px 20px;font-size:15px;font-weight:600;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:.15s;width:100%}
+.btn:active{opacity:.85}
+.btn-primary{background:var(--pink);color:#fff}
+.btn-mint{background:var(--mint);color:#fff}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-gray{background:var(--gray-light);color:#555}
+.btn-danger{background:#ff5a5a;color:#fff}
+.btn-sm{padding:7px 14px;font-size:13px;border-radius:8px;width:auto}
+.btn-row{display:flex;gap:8px;margin-top:14px}
+.btn-row .btn{flex:1}
+
+/* ───── Expense Items ───── */
+.expense-list{margin-top:10px}
+.exp-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f0f0}
+.exp-item:last-child{border-bottom:none}
+.exp-cat-icon{font-size:20px;flex-shrink:0}
+.exp-info{flex:1;min-width:0}
+.exp-desc{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.exp-cat{font-size:11px;color:var(--gray)}
+.exp-amount{font-size:15px;font-weight:700;color:#333;white-space:nowrap}
+.exp-del{background:none;border:none;font-size:18px;color:#ccc;cursor:pointer;padding:4px;flex-shrink:0}
+.exp-del:active{color:#ff5a5a}
+
+/* ───── Todo ───── */
+.todo-input-row{display:flex;gap:8px;margin-bottom:14px}
+.todo-input-row input{flex:1;border:1.5px solid #e0e0e0;border-radius:10px;padding:10px 12px;font-size:15px;font-family:'Noto Sans KR',sans-serif;outline:none}
+.todo-input-row input:focus{border-color:var(--pink)}
+.todo-input-row button{background:var(--pink);color:#fff;border:none;border-radius:10px;padding:10px 14px;font-size:20px;cursor:pointer}
+.todo-item{display:flex;align-items:center;gap:10px;padding:11px 12px;background:var(--white);border-radius:12px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.todo-check{width:22px;height:22px;border-radius:50%;border:2px solid #ddd;background:var(--white);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;transition:.15s}
+.todo-check.done{background:var(--mint);border-color:var(--mint);color:#fff}
+.todo-text{flex:1;font-size:14px}
+.todo-text.done{text-decoration:line-through;color:#aaa}
+.todo-del{background:none;border:none;color:#ccc;cursor:pointer;font-size:16px;padding:4px}
+.section-divider{font-size:12px;font-weight:600;color:var(--gray);margin:12px 0 8px;padding-left:4px}
+
+/* ───── Recipes ───── */
+.recipe-card{background:var(--white);border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 5px rgba(0,0,0,.06);cursor:pointer;active:opacity:.8}
+.recipe-card:active{opacity:.8}
+.recipe-title{font-size:15px;font-weight:700;margin-bottom:4px}
+.recipe-preview{font-size:12px;color:var(--gray);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+
+/* ───── Settlement ───── */
+.settle-card{background:var(--white);border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 1px 6px rgba(0,0,0,.07)}
+.settle-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f5f5f5}
+.settle-row:last-child{border-bottom:none}
+.settle-label{font-size:14px;color:#444}
+.settle-val{font-size:15px;font-weight:700}
+.settle-result{background:var(--pink-light);border-radius:12px;padding:14px;margin-top:8px;text-align:center}
+.settle-result .result-text{font-size:15px;font-weight:700;color:var(--pink);line-height:1.6}
+.settle-done-btn{margin-top:10px}
+.settled-badge{display:inline-block;background:var(--mint);color:#fff;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:600}
+
+/* ───── Setup Screen ───── */
+#setup-screen{position:fixed;inset:0;background:linear-gradient(135deg,var(--pink-light) 0%,var(--blue-light) 100%);display:flex;align-items:center;justify-content:center;z-index:500;padding:24px}
+.setup-box{background:var(--white);border-radius:24px;padding:28px 20px;width:100%;max-width:400px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.12)}
+.setup-box h2{font-size:24px;font-weight:700;margin-bottom:8px}
+.setup-box p{font-size:14px;color:var(--gray);margin-bottom:24px;line-height:1.6}
+.setup-box .emoji-big{font-size:48px;margin-bottom:12px}
+
+/* ───── Notification Toast ───── */
+.toast{position:fixed;top:calc(var(--header-h)+8px);left:50%;transform:translateX(-50%) translateY(-80px);background:#333;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;z-index:1000;transition:.3s;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* ───── Skeleton / Empty ───── */
+.empty-msg{text-align:center;color:var(--gray);padding:32px 0;font-size:14px}
+
+/* ───── PC Responsive ≥768px ───── */
+@media (min-width:768px){
+  /* Sidebar nav */
+  #nav{top:0;bottom:0;left:0;right:auto;width:200px;height:auto;flex-direction:column;justify-content:flex-start;padding-top:var(--header-h);box-shadow:1px 0 8px rgba(0,0,0,.08)}
+  .nav-btn{flex-direction:row;justify-content:flex-start;gap:12px;padding:14px 20px;font-size:14px;width:100%}
+  .nav-btn .nav-icon{font-size:20px}
+  .nav-btn.active{background:var(--pink-light);color:var(--pink)}
+
+  /* Header + content offset */
+  #header{padding-left:216px}
+  #page-area{margin-left:200px;padding-bottom:20px}
+  .page{max-width:880px}
+
+  /* FAB */
+  .fab{bottom:28px;right:28px}
+
+  /* Bigger calendar cells */
+  .cal-cell{min-height:88px}
+  .cal-preview{font-size:11px;max-height:54px}
+  .cal-day{width:28px;height:28px;font-size:13px}
+
+  /* Centered dialog modals */
+  .overlay{align-items:center}
+  .sheet{border-radius:20px;max-width:520px;animation:fadeScale .2s ease}
+  @keyframes fadeScale{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+
+  /* Larger text elements */
+  .summary-card .amount{font-size:28px}
+  .month-nav span{font-size:19px}
+  .sub-tab{padding:9px 12px;font-size:14px}
+  .sub-tabs{margin-bottom:16px}
+}
+
+@media (min-width:1100px){
+  #nav{width:220px}
+  #header{padding-left:236px}
+  #page-area{margin-left:220px}
+  .page{max-width:960px}
+}
+</style>
+</head>
+<body>
+
+<!-- Setup Screen -->
+<div id="setup-screen">
+  <div class="setup-box">
+    <div class="emoji-big">💑</div>
+    <h2>우리 가계부</h2>
+    <p>두 사람이 함께 쓰는 가계부예요.<br>먼저 Firebase 설정을 해주세요!</p>
+    <button class="btn btn-primary" onclick="openSettings()">⚙️ 설정하기</button>
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="app" style="display:none">
+  <div id="header">
+    <h1>💑 우리 가계부</h1>
+    <div class="header-right">
+      <button onclick="openSettings()" title="설정">⚙️</button>
+    </div>
+  </div>
+
+  <div id="page-area">
+    <!-- 가계부 -->
+    <div id="page-expense" class="page active">
+      <div class="sub-tabs">
+        <div class="sub-tab active" onclick="switchExpenseTab('boy',this)">🐭 주머니쥐</div>
+        <div class="sub-tab" onclick="switchExpenseTab('girl',this)">👧 누나양</div>
+        <div class="sub-tab" onclick="switchExpenseTab('shared',this)">🤝 공금</div>
+      </div>
+      <div class="month-nav">
+        <button onclick="changeExpenseMonth(-1)">‹</button>
+        <span id="expense-month-label"></span>
+        <button onclick="changeExpenseMonth(1)">›</button>
+      </div>
+      <div class="summary-card">
+        <div class="label">이번 달 지출</div>
+        <div class="amount" id="expense-summary">₩0</div>
+      </div>
+      <div class="cal-wrap">
+        <div class="cal-head">
+          <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
+        </div>
+        <div class="cal-grid" id="expense-cal"></div>
+      </div>
+    </div>
+
+    <!-- 급식표 -->
+    <div id="page-meal" class="page">
+      <div class="month-nav">
+        <button onclick="changeMealMonth(-1)">‹</button>
+        <span id="meal-month-label"></span>
+        <button onclick="changeMealMonth(1)">›</button>
+      </div>
+      <div class="cal-wrap">
+        <div class="cal-head">
+          <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
+        </div>
+        <div class="cal-grid" id="meal-cal"></div>
+      </div>
+    </div>
+
+    <!-- 일정표 -->
+    <div id="page-schedule" class="page">
+      <div class="month-nav">
+        <button onclick="changeScheduleMonth(-1)">‹</button>
+        <span id="schedule-month-label"></span>
+        <button onclick="changeScheduleMonth(1)">›</button>
+      </div>
+      <div class="cal-wrap">
+        <div class="cal-head">
+          <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
+        </div>
+        <div class="cal-grid" id="schedule-cal"></div>
+      </div>
+    </div>
+
+    <!-- 할 일 -->
+    <div id="page-todo" class="page">
+      <div class="todo-input-row">
+        <input type="text" id="todo-input" placeholder="할 일 추가..." onkeydown="if(event.key==='Enter')addTodo()">
+        <button onclick="addTodo()">+</button>
+      </div>
+      <div id="todo-active-list"></div>
+      <div id="todo-done-section" style="display:none">
+        <div class="section-divider">완료됨</div>
+        <div id="todo-done-list"></div>
+      </div>
+    </div>
+
+    <!-- 레시피 -->
+    <div id="page-recipe" class="page">
+      <div id="recipe-list"></div>
+    </div>
+
+    <!-- 정산 -->
+    <div id="page-settle" class="page">
+      <div class="month-nav">
+        <button onclick="changeSettleMonth(-1)">‹</button>
+        <span id="settle-month-label"></span>
+        <button onclick="changeSettleMonth(1)">›</button>
+      </div>
+      <div id="settle-content"></div>
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <nav id="nav">
+    <button class="nav-btn active" onclick="switchPage('expense',this)">
+      <span class="nav-icon">💰</span>가계부
+    </button>
+    <button class="nav-btn" onclick="switchPage('meal',this)">
+      <span class="nav-icon">🍽️</span>급식표
+    </button>
+    <button class="nav-btn" onclick="switchPage('schedule',this)">
+      <span class="nav-icon">📅</span>일정표
+    </button>
+    <button class="nav-btn" onclick="switchPage('todo',this)">
+      <span class="nav-icon">✅</span>할 일
+    </button>
+    <button class="nav-btn" onclick="switchPage('recipe',this)">
+      <span class="nav-icon">📖</span>레시피
+    </button>
+    <button class="nav-btn" onclick="switchPage('settle',this)">
+      <span class="nav-icon">🤝</span>정산
+    </button>
+  </nav>
+
+  <!-- FAB -->
+  <button class="fab" id="fab" onclick="onFabClick()">+</button>
+</div>
+
+<!-- ═══════════ MODALS ═══════════ -->
+
+<!-- Settings Modal -->
+<div class="overlay" id="settings-overlay" onclick="overlayClickClose(event,'settings-overlay')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h2>⚙️ 설정</h2>
+    <div class="form-group">
+      <label>방 코드 (두 사람 동일하게)</label>
+      <input type="text" id="cfg-room" placeholder="예: mypink2024">
+    </div>
+    <div class="form-group">
+      <label>Firebase API Key</label>
+      <input type="text" id="cfg-apikey" placeholder="AIzaSy...">
+    </div>
+    <div class="form-group">
+      <label>Auth Domain</label>
+      <input type="text" id="cfg-authdomain" placeholder="xxx.firebaseapp.com">
+    </div>
+    <div class="form-group">
+      <label>Database URL</label>
+      <input type="text" id="cfg-dburl" placeholder="https://xxx-default-rtdb.firebaseio.com">
+    </div>
+    <div class="form-group">
+      <label>Project ID</label>
+      <input type="text" id="cfg-projectid" placeholder="my-project-id">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-gray" onclick="closeModal('settings-overlay')">취소</button>
+      <button class="btn btn-primary" onclick="saveSettings()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Expense Detail Modal -->
+<div class="overlay" id="exp-detail-overlay" onclick="overlayClickClose(event,'exp-detail-overlay')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h2 id="exp-detail-title"></h2>
+    <div id="exp-detail-list" class="expense-list"></div>
+    <button class="btn btn-primary" style="margin-top:14px" onclick="openExpenseAdd()">+ 추가</button>
+  </div>
+</div>
+
+<!-- Expense Add Modal -->
+<div class="overlay" id="exp-add-overlay" onclick="overlayClickClose(event,'exp-add-overlay')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h2>지출 추가</h2>
+    <div class="form-group">
+      <label>내용</label>
+      <input type="text" id="exp-desc" placeholder="예: 점심 김치찌개">
+    </div>
+    <div class="form-group">
+      <label>금액 (원)</label>
+      <input type="number" id="exp-amount" placeholder="0" inputmode="numeric">
+    </div>
+    <div class="form-group">
+      <label>카테고리</label>
+      <div class="cat-chips" id="cat-chips">
+        <div class="cat-chip selected" data-cat="식비" onclick="selectCat(this)">🍽️ 식비</div>
+        <div class="cat-chip" data-cat="교통" onclick="selectCat(this)">🚇 교통</div>
+        <div class="cat-chip" data-cat="쇼핑" onclick="selectCat(this)">🛍️ 쇼핑</div>
+        <div class="cat-chip" data-cat="의료" onclick="selectCat(this)">💊 의료</div>
+        <div class="cat-chip" data-cat="구독" onclick="selectCat(this)">📱 구독</div>
+        <div class="cat-chip" data-cat="여가" onclick="selectCat(this)">🎮 여가</div>
+        <div class="cat-chip" data-cat="생활비" onclick="selectCat(this)">🏠 생활비</div>
+        <div class="cat-chip" data-cat="선물" onclick="selectCat(this)">🎁 선물</div>
+        <div class="cat-chip" data-cat="쿠팡카드" onclick="selectCat(this)">💳 쿠팡카드</div>
+        <div class="cat-chip" data-cat="기타" onclick="selectCat(this)">📦 기타</div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-gray" onclick="closeModal('exp-add-overlay')">취소</button>
+      <button class="btn btn-primary" onclick="saveExpense()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Meal Modal -->
+<div class="overlay" id="meal-overlay" onclick="overlayClickClose(event,'meal-overlay')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h2 id="meal-modal-title"></h2>
+    <div class="form-group">
+      <label>식단</label>
+      <input type="text" id="meal-input" placeholder="예: 닭도리탕, 된장국">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-gray" onclick="closeModal('meal-overlay')">취소</button>
+      <button class="btn btn-mint" onclick="saveMeal()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Schedule Modal -->
+<div class="overlay" id="schedule-overlay" onclick="overlayClickClose(event,'schedule-overlay')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h2 id="schedule-modal-title"></h2>
+    <div id="schedule-detail-list" class="expense-list"></div>
+    <div class="form-group" style="margin-top:14px">
+      <label>새 일정 추가</label>
+      <input type="text" id="schedule-input" placeholder="일정 제목">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-gray" onclick="closeModal('schedule-overlay')">취소</button>
+      <button class="btn btn-blue" onclick="saveSchedule()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Recipe Add/Edit Modal -->
+<div class="overlay" id="recipe-overlay" onclick="overlayClickClose(event,'recipe-overlay')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h2 id="recipe-modal-title">레시피 추가</h2>
+    <div class="form-group">
+      <label>제목</label>
+      <input type="text" id="recipe-title-input" placeholder="예: 부대찌개">
+    </div>
+    <div class="form-group">
+      <label>내용</label>
+      <textarea id="recipe-content-input" placeholder="재료 및 조리법을 적어주세요..."></textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-danger btn-sm" id="recipe-del-btn" onclick="deleteRecipe()" style="display:none;width:auto">삭제</button>
+      <button class="btn btn-gray" onclick="closeModal('recipe-overlay')">취소</button>
+      <button class="btn btn-primary" onclick="saveRecipe()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════
+//  State & Config
+// ══════════════════════════════════════════════
+const STORAGE_KEY = 'hh-fb-config';
+const CAT_ICONS = {식비:'🍽️',교통:'🚇',쇼핑:'🛍️',의료:'💊',구독:'📱',여가:'🎮',생활비:'🏠',선물:'🎁',쿠팡카드:'💳',기타:'📦'};
+
+// Firebase config (our-diary-240f6)
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyD1tVw17oq1EwATy85nfdzzRcVUfnE6UlY",
+  authDomain: "our-diary-240f6.firebaseapp.com",
+  databaseURL: "https://our-diary-240f6-default-rtdb.firebaseio.com",
+  projectId: "our-diary-240f6"
+};
+const DEFAULT_ROOM = 'ourdiary';
+
+let cfg = {};
+let db = null;
+let room = '';
+let appData = {};
+
+// Page states
+let currentPage = 'expense';
+let expenseTab = 'boy';
+let expenseYear, expenseMonth;
+let mealYear, mealMonth;
+let scheduleYear, scheduleMonth;
+let settleYear, settleMonth;
+
+// Temp state for modals
+let selectedDay = null;
+let selectedCat = '식비';
+let editingRecipeId = null;
+let editingScheduleDay = null;
+let editingMealDay = null;
+
+// ══════════════════════════════════════════════
+//  Init
+// ══════════════════════════════════════════════
+function init() {
+  const now = new Date();
+  expenseYear = mealYear = scheduleYear = settleYear = now.getFullYear();
+  expenseMonth = mealMonth = scheduleMonth = settleMonth = now.getMonth() + 1;
+
+  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+  cfg = {
+    ...FIREBASE_CONFIG,
+    room: saved.room || DEFAULT_ROOM,
+    ...saved
+  };
+  initFirebase();
+}
+
+function initFirebase() {
+  try {
+    // Delete existing apps
+    firebase.apps.forEach(a => a.delete());
+  } catch(e) {}
+
+  room = cfg.room || DEFAULT_ROOM;
+  try {
+    firebase.initializeApp({
+      apiKey: cfg.apiKey || FIREBASE_CONFIG.apiKey,
+      authDomain: cfg.authDomain || FIREBASE_CONFIG.authDomain,
+      databaseURL: cfg.databaseURL || FIREBASE_CONFIG.databaseURL,
+      projectId: cfg.projectId || FIREBASE_CONFIG.projectId
+    });
+    db = firebase.database();
+    db.ref(room).on('value', snap => {
+      appData = snap.val() || {};
+      renderAll();
+    });
+    document.getElementById('setup-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+  } catch(e) {
+    showToast('Firebase 연결 오류: ' + e.message);
+    document.getElementById('setup-screen').style.display = 'flex';
+  }
+}
+
+function renderAll() {
+  renderExpenseCal();
+  renderMealCal();
+  renderScheduleCal();
+  renderTodos();
+  renderRecipes();
+  renderSettle();
+}
+
+// ══════════════════════════════════════════════
+//  Navigation
+// ══════════════════════════════════════════════
+function switchPage(page, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentPage = page;
+
+  // Show/hide FAB
+  const fab = document.getElementById('fab');
+  if (['expense','recipe'].includes(page)) {
+    fab.style.display = 'flex';
+  } else {
+    fab.style.display = 'none';
+  }
+}
+
+function onFabClick() {
+  if (currentPage === 'expense') {
+    const now = new Date();
+    if (expenseYear === now.getFullYear() && expenseMonth === now.getMonth()+1) {
+      selectedDay = now.getDate();
+    } else {
+      selectedDay = 1;
+    }
+    openExpenseDayModal(selectedDay);
+  } else if (currentPage === 'recipe') {
+    openRecipeAdd();
+  }
+}
+
+// ══════════════════════════════════════════════
+//  Settings
+// ══════════════════════════════════════════════
+function openSettings() {
+  document.getElementById('cfg-room').value = cfg.room || DEFAULT_ROOM;
+  document.getElementById('cfg-apikey').value = cfg.apiKey || FIREBASE_CONFIG.apiKey;
+  document.getElementById('cfg-authdomain').value = cfg.authDomain || FIREBASE_CONFIG.authDomain;
+  document.getElementById('cfg-dburl').value = cfg.databaseURL || FIREBASE_CONFIG.databaseURL;
+  document.getElementById('cfg-projectid').value = cfg.projectId || FIREBASE_CONFIG.projectId;
+  openModal('settings-overlay');
+}
+
+function saveSettings() {
+  const newCfg = {
+    room: document.getElementById('cfg-room').value.trim() || DEFAULT_ROOM,
+    apiKey: document.getElementById('cfg-apikey').value.trim() || FIREBASE_CONFIG.apiKey,
+    authDomain: document.getElementById('cfg-authdomain').value.trim() || FIREBASE_CONFIG.authDomain,
+    databaseURL: document.getElementById('cfg-dburl').value.trim() || FIREBASE_CONFIG.databaseURL,
+    projectId: document.getElementById('cfg-projectid').value.trim() || FIREBASE_CONFIG.projectId
+  };
+  cfg = newCfg;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+  closeModal('settings-overlay');
+  initFirebase();
+  showToast('설정이 저장됐어요 ✨');
+}
+
+// ══════════════════════════════════════════════
+//  Calendar Builder
+// ══════════════════════════════════════════════
+function buildCalendar(containerId, year, month, getCellContent, onDayClick) {
+  const container = document.getElementById(containerId);
+  const today = new Date();
+  const firstDay = new Date(year, month - 1, 1).getDay();
+  const daysInMonth = new Date(year, month, 0).getDate();
+  let html = '';
+
+  for (let i = 0; i < firstDay; i++) {
+    html += '<div class="cal-cell empty"></div>';
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dow = (firstDay + d - 1) % 7;
+    const isToday = today.getFullYear()===year && today.getMonth()+1===month && today.getDate()===d;
+    const sunClass = dow === 0 ? 'sun' : '';
+    const satClass = dow === 6 ? 'sat' : '';
+    const todayClass = isToday ? 'today' : '';
+    const content = getCellContent(d);
+    html += `<div class="cal-cell ${sunClass} ${satClass} ${todayClass}" onclick="${onDayClick}(event,${d})">
+      <div class="cal-day">${d}</div>
+      ${content ? `<div class="cal-preview">${content}</div>` : ''}
+    </div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+function ym(year, month) {
+  return `${year}-${String(month).padStart(2,'0')}`;
+}
+
+function fmt(n) {
+  return '₩' + Number(n).toLocaleString();
+}
+
+// ══════════════════════════════════════════════
+//  Expense Tab
+// ══════════════════════════════════════════════
+function switchExpenseTab(tab, el) {
+  expenseTab = tab;
+  document.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderExpenseCal();
+}
+
+function changeExpenseMonth(delta) {
+  expenseMonth += delta;
+  if (expenseMonth > 12) { expenseMonth = 1; expenseYear++; }
+  if (expenseMonth < 1) { expenseMonth = 12; expenseYear--; }
+  renderExpenseCal();
+}
+
+function renderExpenseCal() {
+  const label = `${expenseYear}년 ${expenseMonth}월`;
+  document.getElementById('expense-month-label').textContent = label;
+
+  const key = ym(expenseYear, expenseMonth);
+  const tabData = (appData.expenses || {})[expenseTab] || {};
+  const monthData = tabData[key] || {};
+
+  // Calc total
+  let total = 0;
+  Object.values(monthData).forEach(dayItems => {
+    if (typeof dayItems === 'object') {
+      Object.values(dayItems).forEach(item => { total += Number(item.amount || 0); });
+    }
+  });
+  document.getElementById('expense-summary').textContent = fmt(total);
+
+  buildCalendar('expense-cal', expenseYear, expenseMonth, (d) => {
+    const dayStr = String(d).padStart(2,'0');
+    const items = monthData[dayStr] || {};
+    const arr = Object.values(items);
+    if (!arr.length) return '';
+    const dayTotal = arr.reduce((s,i) => s + Number(i.amount||0), 0);
+    const previews = arr.slice(0,2).map(i => `<span>${i.desc||''}</span>`).join(' ');
+    return `${previews}<br><span class="preview-amt">${fmt(dayTotal)}</span>`;
+  }, 'onExpenseDayClick');
+}
+
+function onExpenseDayClick(event, d) {
+  selectedDay = d;
+  openExpenseDayModal(d);
+}
+
+function openExpenseDayModal(d) {
+  const dayStr = String(d).padStart(2,'0');
+  const key = ym(expenseYear, expenseMonth);
+  const tabData = (appData.expenses || {})[expenseTab] || {};
+  const monthData = tabData[key] || {};
+  const items = monthData[dayStr] || {};
+
+  const tabLabel = {boy:'주머니쥐', girl:'누나양', shared:'공금'}[expenseTab];
+  document.getElementById('exp-detail-title').textContent =
+    `${expenseMonth}/${d} ${tabLabel}`;
+
+  const list = document.getElementById('exp-detail-list');
+  const arr = Object.entries(items);
+  if (!arr.length) {
+    list.innerHTML = '<div class="empty-msg">지출 내역이 없어요</div>';
+  } else {
+    list.innerHTML = arr.map(([id, item]) => `
+      <div class="exp-item">
+        <div class="exp-cat-icon">${CAT_ICONS[item.cat] || '📦'}</div>
+        <div class="exp-info">
+          <div class="exp-desc">${escHtml(item.desc || '')}</div>
+          <div class="exp-cat">${item.cat || '기타'}</div>
+        </div>
+        <div class="exp-amount">${fmt(item.amount || 0)}</div>
+        <button class="exp-del" onclick="deleteExpense('${dayStr}','${id}')">✕</button>
+      </div>
+    `).join('');
+  }
+  openModal('exp-detail-overlay');
+}
+
+function openExpenseAdd() {
+  // Reset form
+  document.getElementById('exp-desc').value = '';
+  document.getElementById('exp-amount').value = '';
+  document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('selected'));
+  document.querySelector('.cat-chip[data-cat="식비"]').classList.add('selected');
+  selectedCat = '식비';
+  openModal('exp-add-overlay');
+}
+
+function selectCat(el) {
+  document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedCat = el.dataset.cat;
+}
+
+function saveExpense() {
+  const desc = document.getElementById('exp-desc').value.trim();
+  const amount = parseInt(document.getElementById('exp-amount').value) || 0;
+  if (!desc) { showToast('내용을 입력해주세요'); return; }
+  if (!amount) { showToast('금액을 입력해주세요'); return; }
+
+  const dayStr = String(selectedDay).padStart(2,'0');
+  const key = ym(expenseYear, expenseMonth);
+  const path = `${room}/expenses/${expenseTab}/${key}/${dayStr}`;
+  db.ref(path).push({ desc, amount, cat: selectedCat, ts: Date.now() })
+    .then(() => {
+      closeModal('exp-add-overlay');
+      showToast('지출을 추가했어요 💸');
+      // refresh detail
+      setTimeout(() => openExpenseDayModal(selectedDay), 200);
+    })
+    .catch(e => showToast('저장 실패: ' + e.message));
+}
+
+function deleteExpense(dayStr, id) {
+  if (!confirm('이 지출을 삭제할까요?')) return;
+  const key = ym(expenseYear, expenseMonth);
+  const path = `${room}/expenses/${expenseTab}/${key}/${dayStr}/${id}`;
+  db.ref(path).remove().then(() => {
+    showToast('삭제했어요');
+    openExpenseDayModal(Number(dayStr));
+  });
+}
+
+// ══════════════════════════════════════════════
+//  Meal Tab
+// ══════════════════════════════════════════════
+function changeMealMonth(delta) {
+  mealMonth += delta;
+  if (mealMonth > 12) { mealMonth = 1; mealYear++; }
+  if (mealMonth < 1) { mealMonth = 12; mealYear--; }
+  renderMealCal();
+}
+
+function renderMealCal() {
+  document.getElementById('meal-month-label').textContent = `${mealYear}년 ${mealMonth}월`;
+  const key = ym(mealYear, mealMonth);
+  const meals = (appData.meals || {})[key] || {};
+
+  buildCalendar('meal-cal', mealYear, mealMonth, (d) => {
+    const dayStr = String(d).padStart(2,'0');
+    const m = meals[dayStr];
+    return m ? `<span class="preview-meal">${escHtml(m)}</span>` : '';
+  }, 'onMealDayClick');
+}
+
+function onMealDayClick(event, d) {
+  editingMealDay = d;
+  const dayStr = String(d).padStart(2,'0');
+  const key = ym(mealYear, mealMonth);
+  const meals = (appData.meals || {})[key] || {};
+  const current = meals[dayStr] || '';
+  document.getElementById('meal-modal-title').textContent = `${mealMonth}월 ${d}일 식단`;
+  document.getElementById('meal-input').value = current;
+  openModal('meal-overlay');
+}
+
+function saveMeal() {
+  const val = document.getElementById('meal-input').value.trim();
+  const dayStr = String(editingMealDay).padStart(2,'0');
+  const key = ym(mealYear, mealMonth);
+  const path = `${room}/meals/${key}/${dayStr}`;
+  const op = val ? db.ref(path).set(val) : db.ref(path).remove();
+  op.then(() => { closeModal('meal-overlay'); showToast('식단을 저장했어요 🍱'); })
+    .catch(e => showToast('저장 실패: ' + e.message));
+}
+
+// ══════════════════════════════════════════════
+//  Schedule Tab
+// ══════════════════════════════════════════════
+function changeScheduleMonth(delta) {
+  scheduleMonth += delta;
+  if (scheduleMonth > 12) { scheduleMonth = 1; scheduleYear++; }
+  if (scheduleMonth < 1) { scheduleMonth = 12; scheduleYear--; }
+  renderScheduleCal();
+}
+
+function renderScheduleCal() {
+  document.getElementById('schedule-month-label').textContent = `${scheduleYear}년 ${scheduleMonth}월`;
+  const key = ym(scheduleYear, scheduleMonth);
+  const schedules = (appData.schedule || {})[key] || {};
+
+  buildCalendar('schedule-cal', scheduleYear, scheduleMonth, (d) => {
+    const dayStr = String(d).padStart(2,'0');
+    const items = schedules[dayStr] || {};
+    const arr = Object.values(items);
+    if (!arr.length) return '';
+    return arr.slice(0,2).map(i => `<span class="preview-sched">${escHtml(i.title||'')}</span>`).join('<br>');
+  }, 'onScheduleDayClick');
+}
+
+function onScheduleDayClick(event, d) {
+  editingScheduleDay = d;
+  const dayStr = String(d).padStart(2,'0');
+  const key = ym(scheduleYear, scheduleMonth);
+  const schedules = (appData.schedule || {})[key] || {};
+  const items = schedules[dayStr] || {};
+
+  document.getElementById('schedule-modal-title').textContent = `${scheduleMonth}월 ${d}일 일정`;
+  document.getElementById('schedule-input').value = '';
+
+  const arr = Object.entries(items);
+  const list = document.getElementById('schedule-detail-list');
+  if (!arr.length) {
+    list.innerHTML = '<div class="empty-msg">일정이 없어요</div>';
+  } else {
+    list.innerHTML = arr.map(([id, item]) => `
+      <div class="exp-item">
+        <div class="exp-cat-icon">📌</div>
+        <div class="exp-info"><div class="exp-desc">${escHtml(item.title||'')}</div></div>
+        <button class="exp-del" onclick="deleteSchedule('${dayStr}','${id}')">✕</button>
+      </div>
+    `).join('');
+  }
+  openModal('schedule-overlay');
+}
+
+function saveSchedule() {
+  const title = document.getElementById('schedule-input').value.trim();
+  if (!title) { closeModal('schedule-overlay'); return; }
+  const dayStr = String(editingScheduleDay).padStart(2,'0');
+  const key = ym(scheduleYear, scheduleMonth);
+  const path = `${room}/schedule/${key}/${dayStr}`;
+  db.ref(path).push({ title, ts: Date.now() })
+    .then(() => { closeModal('schedule-overlay'); showToast('일정을 추가했어요 📅'); })
+    .catch(e => showToast('저장 실패: ' + e.message));
+}
+
+function deleteSchedule(dayStr, id) {
+  if (!confirm('이 일정을 삭제할까요?')) return;
+  const key = ym(scheduleYear, scheduleMonth);
+  db.ref(`${room}/schedule/${key}/${dayStr}/${id}`).remove()
+    .then(() => { showToast('삭제했어요'); onScheduleDayClick(null, Number(dayStr)); });
+}
+
+// ══════════════════════════════════════════════
+//  Todo Tab
+// ══════════════════════════════════════════════
+function renderTodos() {
+  const todos = appData.todos || {};
+  const arr = Object.entries(todos).sort((a,b) => (a[1].order||0)-(b[1].order||0));
+  const active = arr.filter(([,t]) => !t.done);
+  const done = arr.filter(([,t]) => t.done);
+
+  document.getElementById('todo-active-list').innerHTML =
+    active.length ? active.map(([id,t]) => todoHtml(id,t)).join('') :
+    '<div class="empty-msg">할 일이 없어요 🎉</div>';
+
+  const doneSection = document.getElementById('todo-done-section');
+  if (done.length) {
+    document.getElementById('todo-done-list').innerHTML = done.map(([id,t]) => todoHtml(id,t)).join('');
+    doneSection.style.display = 'block';
+  } else {
+    doneSection.style.display = 'none';
+  }
+}
+
+function todoHtml(id, t) {
+  return `<div class="todo-item">
+    <div class="todo-check ${t.done?'done':''}" onclick="toggleTodo('${id}',${!t.done})">${t.done?'✓':''}</div>
+    <div class="todo-text ${t.done?'done':''}">${escHtml(t.text||'')}</div>
+    <button class="todo-del" onclick="deleteTodo('${id}')">✕</button>
+  </div>`;
+}
+
+function addTodo() {
+  const input = document.getElementById('todo-input');
+  const text = input.value.trim();
+  if (!text) return;
+  const todos = appData.todos || {};
+  const maxOrder = Object.values(todos).reduce((m,t) => Math.max(m,t.order||0), 0);
+  db.ref(`${room}/todos`).push({ text, done: false, order: maxOrder+1 })
+    .then(() => { input.value = ''; showToast('할 일 추가! ✅'); })
+    .catch(e => showToast('저장 실패: ' + e.message));
+}
+
+function toggleTodo(id, done) {
+  db.ref(`${room}/todos/${id}`).update({ done });
+}
+
+function deleteTodo(id) {
+  db.ref(`${room}/todos/${id}`).remove();
+}
+
+// ══════════════════════════════════════════════
+//  Recipe Tab
+// ══════════════════════════════════════════════
+function renderRecipes() {
+  const recipes = appData.recipes || {};
+  const arr = Object.entries(recipes).sort((a,b) => (b[1].ts||0)-(a[1].ts||0));
+  const list = document.getElementById('recipe-list');
+  if (!arr.length) {
+    list.innerHTML = '<div class="empty-msg">레시피가 없어요 🍳<br>+ 버튼으로 추가해보세요</div>';
+    return;
+  }
+  list.innerHTML = arr.map(([id,r]) => `
+    <div class="recipe-card" onclick="openRecipeEdit('${id}')">
+      <div class="recipe-title">${escHtml(r.title||'')}</div>
+      <div class="recipe-preview">${escHtml(r.content||'').replace(/\n/g,' ')}</div>
+    </div>
+  `).join('');
+}
+
+function openRecipeAdd() {
+  editingRecipeId = null;
+  document.getElementById('recipe-modal-title').textContent = '레시피 추가';
+  document.getElementById('recipe-title-input').value = '';
+  document.getElementById('recipe-content-input').value = '';
+  document.getElementById('recipe-del-btn').style.display = 'none';
+  openModal('recipe-overlay');
+}
+
+function openRecipeEdit(id) {
+  editingRecipeId = id;
+  const r = (appData.recipes || {})[id] || {};
+  document.getElementById('recipe-modal-title').textContent = '레시피 수정';
+  document.getElementById('recipe-title-input').value = r.title || '';
+  document.getElementById('recipe-content-input').value = r.content || '';
+  document.getElementById('recipe-del-btn').style.display = 'inline-flex';
+  openModal('recipe-overlay');
+}
+
+function saveRecipe() {
+  const title = document.getElementById('recipe-title-input').value.trim();
+  const content = document.getElementById('recipe-content-input').value.trim();
+  if (!title) { showToast('제목을 입력해주세요'); return; }
+  const data = { title, content, ts: Date.now() };
+  const ref = editingRecipeId
+    ? db.ref(`${room}/recipes/${editingRecipeId}`)
+    : db.ref(`${room}/recipes`).push();
+  (editingRecipeId ? ref.set(data) : ref.set(data))
+    .then(() => { closeModal('recipe-overlay'); showToast(editingRecipeId?'수정했어요 ✏️':'레시피 추가! 🍳'); })
+    .catch(e => showToast('저장 실패: ' + e.message));
+}
+
+function deleteRecipe() {
+  if (!editingRecipeId) return;
+  if (!confirm('이 레시피를 삭제할까요?')) return;
+  db.ref(`${room}/recipes/${editingRecipeId}`).remove()
+    .then(() => { closeModal('recipe-overlay'); showToast('삭제했어요'); });
+}
+
+// ══════════════════════════════════════════════
+//  Settlement Tab
+// ══════════════════════════════════════════════
+function changeSettleMonth(delta) {
+  settleMonth += delta;
+  if (settleMonth > 12) { settleMonth = 1; settleYear++; }
+  if (settleMonth < 1) { settleMonth = 12; settleYear--; }
+  renderSettle();
+}
+
+function renderSettle() {
+  document.getElementById('settle-month-label').textContent = `${settleYear}년 ${settleMonth}월`;
+  const key = ym(settleYear, settleMonth);
+  const expenses = appData.expenses || {};
+  const settlementData = (appData.settlements || {})[key] || {};
+
+  function sumMonth(tab, catFilter) {
+    const tabData = (expenses[tab] || {})[key] || {};
+    let total = 0;
+    Object.values(tabData).forEach(dayItems => {
+      if (typeof dayItems === 'object') {
+        Object.values(dayItems).forEach(item => {
+          if (!catFilter || item.cat === catFilter) total += Number(item.amount||0);
+        });
+      }
+    });
+    return total;
+  }
+
+  const boyTotal = sumMonth('boy');
+  const girlTotal = sumMonth('girl');
+  const sharedTotal = sumMonth('shared');
+  const coupangTotal = sumMonth('shared', '쿠팡카드');
+  const sharedOther = sharedTotal - coupangTotal;
+  const grandTotal = boyTotal + girlTotal + sharedTotal;
+
+  // Shared (including Coupang card) split 50/50
+  const sharedEach = Math.round(sharedTotal / 2);
+  const coupangEach = Math.round(coupangTotal / 2);
+
+  // Net transfer based on personal expense difference + shared burden
+  const diff = boyTotal - girlTotal;
+  let transferAmt = Math.round(Math.abs(diff) / 2) + sharedEach;
+  let transferMsg = '';
+  if (transferAmt < 100) {
+    transferMsg = '정산 금액이 거의 없어요! 👏';
+  } else if (diff > 0) {
+    transferMsg = `누나양이 주머니쥐에게\n${fmt(transferAmt)} 보내주세요`;
+  } else {
+    transferMsg = `주머니쥐가 누나양에게\n${fmt(transferAmt)} 보내주세요`;
+  }
+
+  const settled = settlementData.settled || false;
+
+  document.getElementById('settle-content').innerHTML = `
+    <div class="settle-card">
+      <div class="settle-row"><span class="settle-label">🐭 주머니쥐 지출</span><span class="settle-val">${fmt(boyTotal)}</span></div>
+      <div class="settle-row"><span class="settle-label">👧 누나양 지출</span><span class="settle-val">${fmt(girlTotal)}</span></div>
+      <div class="settle-row"><span class="settle-label">🤝 공금 지출</span><span class="settle-val">${fmt(sharedOther)}</span></div>
+      <div class="settle-row"><span class="settle-label">💳 쿠팡카드 결제</span><span class="settle-val">${fmt(coupangTotal)}</span></div>
+      <div class="settle-row" style="font-weight:700"><span class="settle-label">합계</span><span class="settle-val">${fmt(grandTotal)}</span></div>
+    </div>
+    <div class="settle-card">
+      <h3>공금 분담 (50:50)</h3>
+      <div class="settle-row"><span class="settle-label">공금 각자 부담</span><span class="settle-val">${fmt(sharedEach)}</span></div>
+      ${coupangTotal > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray)">└ 쿠팡카드 각자 ${fmt(coupangEach)} 포함</span><span class="settle-val" style="font-size:12px;color:var(--gray)">1/2씩</span></div>` : ''}
+    </div>
+    <div class="settle-card">
+      <h3>정산 결과</h3>
+      <div class="settle-result">
+        <div class="result-text" style="white-space:pre-line">${transferMsg}</div>
+      </div>
+      <div class="settle-done-btn">
+        ${settled
+          ? `<div style="text-align:center;padding:8px"><span class="settled-badge">✓ 정산 완료</span></div>
+             <button class="btn btn-gray" onclick="toggleSettle(false)">정산 취소</button>`
+          : `<button class="btn btn-mint" onclick="toggleSettle(true)">✅ 정산 완료</button>`
+        }
+      </div>
+    </div>
+  `;
+}
+
+function toggleSettle(done) {
+  const key = ym(settleYear, settleMonth);
+  db.ref(`${room}/settlements/${key}`).set({ settled: done })
+    .then(() => showToast(done ? '정산 완료! 🎉' : '정산을 취소했어요'));
+}
+
+// ══════════════════════════════════════════════
+//  Modal Helpers
+// ══════════════════════════════════════════════
+function openModal(id) {
+  document.getElementById(id).classList.add('active');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('active');
+}
+function overlayClickClose(event, id) {
+  if (event.target === document.getElementById(id)) closeModal(id);
+}
+
+// ══════════════════════════════════════════════
+//  Toast
+// ══════════════════════════════════════════════
+let toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+// ══════════════════════════════════════════════
+//  Utility
+// ══════════════════════════════════════════════
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ══════════════════════════════════════════════
+//  Kick off
+// ══════════════════════════════════════════════
+init();
+</script>
+</body>
+</html>
