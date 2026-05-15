@@ -198,14 +198,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
 .cat-breakdown-bar-wrap{height:3px;background:var(--gray-light);border-radius:2px;margin-top:6px;overflow:hidden}
 .cat-breakdown-bar{height:100%;background:var(--pink);border-radius:2px;transition:.3s}
 
-/* ───── Coupang Records ───── */
-.coupang-record{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f5f5f5}
-.coupang-record:last-child{border-bottom:none}
-.coupang-record-info{flex:1}
-.coupang-record-who{font-size:13px;font-weight:600}
-.coupang-record-period{font-size:12px;color:var(--gray);margin-top:2px}
-.coupang-record-del{background:none;border:none;color:#ccc;font-size:18px;cursor:pointer;padding:4px;flex-shrink:0}
-.coupang-record-del:active{color:#ff5a5a}
+/* ───── Coupang Done ───── */
+.coupang-done-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f5f5f5;font-size:13px}
+.coupang-done-item:last-child{border-bottom:none}
+.coupang-done-del{background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:2px 4px;margin-left:auto;flex-shrink:0}
+.coupang-done-del:active{color:#ff5a5a}
 
 /* ───── Setup Screen ───── */
 #setup-screen{position:fixed;inset:0;background:linear-gradient(135deg,var(--pink-light) 0%,var(--blue-light) 100%);display:flex;align-items:center;justify-content:center;z-index:500;padding:24px}
@@ -458,7 +455,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
     <div class="sheet-handle"></div>
     <h2 id="exp-detail-title"></h2>
     <div id="exp-detail-list" class="expense-list"></div>
-    <button class="btn btn-primary" style="margin-top:14px" onclick="openExpenseAdd()">+ 추가</button>
+    <div id="coupang-done-section" style="margin-top:8px"></div>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn btn-primary" style="flex:2" onclick="openExpenseAdd()">+ 지출 추가</button>
+      <button class="btn btn-blue" style="flex:1" onclick="openCoupangDoneModal()">💳 쿠팡 정산</button>
+    </div>
   </div>
 </div>
 
@@ -525,7 +526,15 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
     <h2 id="schedule-modal-title"></h2>
     <div id="schedule-detail-list" class="expense-list"></div>
     <div class="form-group" style="margin-top:14px">
-      <label>새 일정 추가</label>
+      <label>누구</label>
+      <div class="sub-tabs" style="margin-bottom:0">
+        <div class="sub-tab active" id="sched-who-none" onclick="selectSchedWho('')">전체</div>
+        <div class="sub-tab" id="sched-who-boy" onclick="selectSchedWho('boy')">🐭 주머니쥐</div>
+        <div class="sub-tab" id="sched-who-girl" onclick="selectSchedWho('girl')">🐱 땃쥐</div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>일정 제목</label>
       <input type="text" id="schedule-input" placeholder="일정 제목">
     </div>
     <div class="btn-row">
@@ -592,33 +601,21 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
   </div>
 </div>
 
-<!-- Coupang Record Add Modal -->
-<div class="overlay" id="coupang-record-overlay" onclick="overlayClickClose(event,'coupang-record-overlay')">
+<!-- Coupang Done Modal -->
+<div class="overlay" id="coupang-done-overlay" onclick="overlayClickClose(event,'coupang-done-overlay')">
   <div class="sheet">
     <div class="sheet-handle"></div>
-    <h2>💳 쿠팡카드 정산 기록</h2>
+    <h2>💳 쿠팡카드 정산완료</h2>
     <div class="form-group" style="margin-top:14px">
       <label>누구</label>
       <div class="sub-tabs" style="margin-bottom:0">
-        <div class="sub-tab active" id="coupang-who-boy" onclick="selectCoupangWho('boy')">🐭 주머니쥐</div>
-        <div class="sub-tab" id="coupang-who-girl" onclick="selectCoupangWho('girl')">🐱 땃쥐</div>
+        <div class="sub-tab active" id="coupang-done-boy" onclick="selectCoupangDoneWho('boy')">🐭 주머니쥐</div>
+        <div class="sub-tab" id="coupang-done-girl" onclick="selectCoupangDoneWho('girl')">🐱 땃쥐</div>
       </div>
     </div>
-    <div class="form-group">
-      <label>정산 기간 시작</label>
-      <input type="date" id="coupang-from">
-    </div>
-    <div class="form-group">
-      <label>정산 기간 종료</label>
-      <input type="date" id="coupang-to">
-    </div>
-    <div class="form-group">
-      <label>메모 (선택)</label>
-      <input type="text" id="coupang-memo" placeholder="예: 1월 정산 완료">
-    </div>
-    <div class="btn-row">
-      <button class="btn btn-gray" onclick="closeModal('coupang-record-overlay')">취소</button>
-      <button class="btn btn-primary" onclick="saveCoupangRecord()">저장</button>
+    <div class="btn-row" style="margin-top:16px">
+      <button class="btn btn-gray" onclick="closeModal('coupang-done-overlay')">취소</button>
+      <button class="btn btn-primary" onclick="saveCoupangDone()">저장</button>
     </div>
   </div>
 </div>
@@ -703,7 +700,8 @@ let selectedCat = '식비';
 let editingRecipeId = null;
 let editingScheduleDay = null;
 let editingMealDay = null;
-let coupangWho = 'boy';
+let schedWho = '';
+let coupangDoneWho = 'boy';
 
 // ══════════════════════════════════════════════
 //  Init
@@ -982,15 +980,20 @@ function renderExpenseCal() {
   document.getElementById('expense-summary').textContent = fmt(total);
 
   const hKeyE = (d) => `${expenseYear}-${String(expenseMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  const coupangDoneMonth = ((appData.coupang_done || {})[ym(expenseYear, expenseMonth)] || {});
   buildCalendar('expense-cal', expenseYear, expenseMonth, (d) => {
     const dayStr = String(d).padStart(2,'0');
     const items = monthData[dayStr] || {};
     const arr = Object.values(items);
-    const holiday = HOLIDAYS[hKeyE(d)];
     const parts = [];
     if (arr.length) {
       const dayTotal = arr.reduce((s,i) => s + Number(i.amount||0), 0);
       parts.push(`<span class="preview-amt">${fmt(dayTotal)}</span>`);
+    }
+    const doneItems = Object.values(coupangDoneMonth[dayStr] || {});
+    if (doneItems.length) {
+      const labels = doneItems.map(x => x.who === 'boy' ? '🐭💳' : '🐱💳').join(' ');
+      parts.push(`<span style="font-size:9px">${labels}</span>`);
     }
     return parts.join('<br>');
   }, 'onExpenseDayClick', (d) => HOLIDAYS[hKeyE(d)] ? 'holiday' : '');
@@ -1036,6 +1039,19 @@ function openExpenseDayModal(d) {
       </div>
     ` : '');
   }
+  // Coupang done section
+  const coupangDoneDay = ((appData.coupang_done || {})[key] || {})[dayStr] || {};
+  const doneArr = Object.entries(coupangDoneDay);
+  const doneSection = document.getElementById('coupang-done-section');
+  if (doneArr.length) {
+    doneSection.innerHTML = `<div style="font-size:12px;color:var(--gray);margin-bottom:4px">💳 쿠팡 정산완료</div>` +
+      doneArr.map(([id, r]) =>
+        `<div class="coupang-done-item">${r.who === 'boy' ? '🐭 주머니쥐' : '🐱 땃쥐'}<button class="coupang-done-del" onclick="deleteCoupangDone('${dayStr}','${id}')">✕</button></div>`
+      ).join('');
+  } else {
+    doneSection.innerHTML = '';
+  }
+
   openModal('exp-detail-overlay');
 }
 
@@ -1167,7 +1183,10 @@ function renderScheduleCal() {
     const arr = Object.values(items);
     const parts = [];
     if (holiday) parts.push(`<span class="preview-holiday">${escHtml(holiday)}</span>`);
-    arr.slice(0, holiday ? 1 : 2).forEach(i => parts.push(`<span class="preview-sched">${escHtml(i.title||'')}</span>`));
+    arr.slice(0, holiday ? 1 : 2).forEach(i => {
+      const who = i.who === 'boy' ? '🐭' : i.who === 'girl' ? '🐱' : '';
+      parts.push(`<span class="preview-sched">${who}${escHtml(i.title||'')}</span>`);
+    });
     return parts.join('<br>');
   }, 'onScheduleDayClick', (d) => HOLIDAYS[hKey(d)] ? 'holiday' : '');
 }
@@ -1181,21 +1200,31 @@ function onScheduleDayClick(event, d) {
 
   document.getElementById('schedule-modal-title').textContent = `${scheduleMonth}월 ${d}일 일정`;
   document.getElementById('schedule-input').value = '';
+  selectSchedWho('');
 
   const arr = Object.entries(items);
   const list = document.getElementById('schedule-detail-list');
   if (!arr.length) {
     list.innerHTML = '<div class="empty-msg">일정이 없어요</div>';
   } else {
-    list.innerHTML = arr.map(([id, item]) => `
+    list.innerHTML = arr.map(([id, item]) => {
+      const who = item.who === 'boy' ? '🐭 ' : item.who === 'girl' ? '🐱 ' : '';
+      return `
       <div class="exp-item">
         <div class="exp-cat-icon">📌</div>
-        <div class="exp-info"><div class="exp-desc">${escHtml(item.title||'')}</div></div>
+        <div class="exp-info"><div class="exp-desc">${who}${escHtml(item.title||'')}</div></div>
         <button class="exp-del" onclick="deleteSchedule('${dayStr}','${id}')">✕</button>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
   }
   openModal('schedule-overlay');
+}
+
+function selectSchedWho(who) {
+  schedWho = who;
+  ['none','boy','girl'].forEach(w => {
+    document.getElementById(`sched-who-${w}`).classList.toggle('active', (w === '' ? 'none' : w) === (who === '' ? 'none' : who));
+  });
 }
 
 function saveSchedule() {
@@ -1204,7 +1233,9 @@ function saveSchedule() {
   const dayStr = String(editingScheduleDay).padStart(2,'0');
   const key = ym(scheduleYear, scheduleMonth);
   const path = `${room}/schedule/${key}/${dayStr}`;
-  db.ref(path).push({ title, ts: Date.now() })
+  const data = { title, ts: Date.now() };
+  if (schedWho) data.who = schedWho;
+  db.ref(path).push(data)
     .then(() => { closeModal('schedule-overlay'); showToast('일정을 추가했어요 📅'); })
     .catch(e => showToast('저장 실패: ' + e.message));
 }
@@ -1417,8 +1448,6 @@ function renderSettle() {
   const boyTotal      = sumPeriod('boy');
   const girlTotal     = sumPeriod('girl');
   const sharedTotal   = sumPeriod('shared');
-  const boyCoupang    = sumPeriod('boy',  '쿠팡카드');
-  const girlCoupang   = sumPeriod('girl', '쿠팡카드');
   const boyPublicCat  = sumPeriod('boy',  '공금지출');
   const girlPublicCat = sumPeriod('girl', '공금지출');
 
@@ -1435,8 +1464,8 @@ function renderSettle() {
 
   const totalCommon    = sacommon + boyPublicCat + girlPublicCat;
   const commonEach     = Math.round(totalCommon / 2);
-  const boyPersonal    = boyTotal  - boyCoupang  - boyPublicCat;
-  const girlPersonal   = girlTotal - girlCoupang - girlPublicCat;
+  const boyPersonal    = boyTotal  - boyPublicCat;
+  const girlPersonal   = girlTotal - girlPublicCat;
   const diff           = boyPersonal - girlPersonal;
   const personalTransfer = Math.round(Math.abs(diff) / 2);
   const personalDir    = diff > 0 ? '땃쥐 → 주머니쥐' : '주머니쥐 → 땃쥐';
@@ -1489,37 +1518,7 @@ function renderSettle() {
       : `<button class="btn btn-mint" onclick="toggleSettle(true)">✅ 정산 완료</button>`
     }
   </div>
-  ${renderCoupangRecords()}
 `;
-}
-
-function renderCoupangRecords() {
-  const records = appData.coupang_records || {};
-  const list = Object.entries(records)
-    .sort((a, b) => (b[1].ts || 0) - (a[1].ts || 0));
-
-  const fmt2 = d => d ? d.replace(/-/g, '.') : '';
-  const whoLabel = w => w === 'boy' ? '🐭 주머니쥐' : '🐱 땃쥐';
-
-  const rows = list.length === 0
-    ? '<div class="empty-msg" style="padding:16px 0">기록이 없어요</div>'
-    : list.map(([id, r]) => `
-        <div class="coupang-record">
-          <div class="coupang-record-info">
-            <div class="coupang-record-who">${whoLabel(r.who)}</div>
-            <div class="coupang-record-period">${fmt2(r.from)} ~ ${fmt2(r.to)}${r.memo ? ' · ' + r.memo : ''}</div>
-          </div>
-          <button class="coupang-record-del" onclick="deleteCoupangRecord('${id}')">🗑</button>
-        </div>`).join('');
-
-  return `
-  <div class="settle-card" style="margin-top:8px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <h3>💳 쿠팡카드 정산 기록</h3>
-      <button class="btn btn-sm btn-blue" onclick="openCoupangRecordModal()">+ 추가</button>
-    </div>
-    ${rows}
-  </div>`;
 }
 
 function toggleSettle(done) {
@@ -1578,41 +1577,37 @@ function openCategoryBreakdown() {
 }
 
 // ══════════════════════════════════════════════
-//  Coupang Record
+//  Coupang Done
 // ══════════════════════════════════════════════
-function openCoupangRecordModal() {
-  coupangWho = 'boy';
-  document.getElementById('coupang-who-boy').classList.add('active');
-  document.getElementById('coupang-who-girl').classList.remove('active');
-  document.getElementById('coupang-from').value = '';
-  document.getElementById('coupang-to').value = '';
-  document.getElementById('coupang-memo').value = '';
-  openModal('coupang-record-overlay');
+function openCoupangDoneModal() {
+  coupangDoneWho = 'boy';
+  document.getElementById('coupang-done-boy').classList.add('active');
+  document.getElementById('coupang-done-girl').classList.remove('active');
+  openModal('coupang-done-overlay');
 }
 
-function selectCoupangWho(who) {
-  coupangWho = who;
-  document.getElementById('coupang-who-boy').classList.toggle('active', who === 'boy');
-  document.getElementById('coupang-who-girl').classList.toggle('active', who === 'girl');
+function selectCoupangDoneWho(who) {
+  coupangDoneWho = who;
+  document.getElementById('coupang-done-boy').classList.toggle('active', who === 'boy');
+  document.getElementById('coupang-done-girl').classList.toggle('active', who === 'girl');
 }
 
-function saveCoupangRecord() {
-  const from = document.getElementById('coupang-from').value;
-  const to   = document.getElementById('coupang-to').value;
-  const memo = document.getElementById('coupang-memo').value.trim();
-  if (!from || !to) { showToast('기간을 입력해주세요'); return; }
-  if (from > to)    { showToast('시작일이 종료일보다 늦습니다'); return; }
-  db.ref(`${room}/coupang_records`).push({ who: coupangWho, from, to, memo, ts: Date.now() })
+function saveCoupangDone() {
+  const dayStr = String(selectedDay).padStart(2,'0');
+  const key = ym(expenseYear, expenseMonth);
+  db.ref(`${room}/coupang_done/${key}/${dayStr}`).push({ who: coupangDoneWho, ts: Date.now() })
     .then(() => {
-      closeModal('coupang-record-overlay');
-      showToast('기록이 저장됐어요 💳');
+      closeModal('coupang-done-overlay');
+      showToast('정산완료 표시됐어요 💳');
+      openExpenseDayModal(selectedDay);
     })
     .catch(e => showToast('저장 실패: ' + e.message));
 }
 
-function deleteCoupangRecord(id) {
-  db.ref(`${room}/coupang_records/${id}`).remove()
-    .then(() => showToast('기록을 삭제했어요'));
+function deleteCoupangDone(dayStr, id) {
+  const key = ym(expenseYear, expenseMonth);
+  db.ref(`${room}/coupang_done/${key}/${dayStr}/${id}`).remove()
+    .then(() => { showToast('삭제했어요'); openExpenseDayModal(selectedDay); });
 }
 
 // ══════════════════════════════════════════════
