@@ -55,6 +55,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
 .month-nav button{background:none;border:none;font-size:22px;cursor:pointer;color:var(--gray);padding:4px 8px}
 .month-nav span{font-size:17px;font-weight:700;cursor:pointer;padding:4px 10px;border-radius:20px;transition:.15s}
 .month-nav span:hover{background:var(--pink-light);color:var(--pink)}
+.month-nav .today-btn{background:var(--pink-light);border:none;color:var(--pink);font-size:12px;font-weight:700;padding:4px 10px;border-radius:14px;cursor:pointer;transition:.15s;flex-shrink:0}
+.month-nav .today-btn:active{background:var(--pink);color:#fff}
 
 /* ───── Month Picker ───── */
 #month-picker-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:300;display:none;align-items:flex-end;justify-content:center}
@@ -296,6 +298,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
         <button onclick="changeExpenseMonth(-1)">‹</button>
         <span id="expense-month-label" onclick="openMonthPicker('expense')"></span>
         <button onclick="changeExpenseMonth(1)">›</button>
+        <button class="today-btn" onclick="goToToday('expense')">오늘</button>
       </div>
       <div class="summary-card" onclick="openCategoryBreakdown()">
         <div class="label">이번 달 지출 <span class="label-hint">▸ 카테고리별 보기</span></div>
@@ -315,6 +318,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
         <button onclick="changeMealMonth(-1)">‹</button>
         <span id="meal-month-label" onclick="openMonthPicker('meal')"></span>
         <button onclick="changeMealMonth(1)">›</button>
+        <button class="today-btn" onclick="goToToday('meal')">오늘</button>
       </div>
       <div class="cal-wrap">
         <div class="cal-head">
@@ -330,6 +334,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
         <button onclick="changeScheduleMonth(-1)">‹</button>
         <span id="schedule-month-label" onclick="openMonthPicker('schedule')"></span>
         <button onclick="changeScheduleMonth(1)">›</button>
+        <button class="today-btn" onclick="goToToday('schedule')">오늘</button>
       </div>
       <div class="cal-wrap">
         <div class="cal-head">
@@ -366,6 +371,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
         <button onclick="changeSettleMonth(-1)">‹</button>
         <span id="settle-month-label" onclick="openMonthPicker('settle')"></span>
         <button onclick="changeSettleMonth(1)">›</button>
+        <button class="today-btn" onclick="goToToday('settle')">오늘</button>
       </div>
       <div id="settle-content"></div>
     </div>
@@ -964,6 +970,15 @@ function changeExpenseMonth(delta) {
   if (expenseMonth > 12) { expenseMonth = 1; expenseYear++; }
   if (expenseMonth < 1) { expenseMonth = 12; expenseYear--; }
   renderExpenseCal();
+}
+
+function goToToday(type) {
+  const now = new Date();
+  const y = now.getFullYear(), m = now.getMonth() + 1;
+  if (type === 'expense') { expenseYear = y; expenseMonth = m; renderExpenseCal(); }
+  else if (type === 'meal') { mealYear = y; mealMonth = m; renderMealCal(); }
+  else if (type === 'schedule') { scheduleYear = y; scheduleMonth = m; renderScheduleCal(); }
+  else if (type === 'settle') { settleYear = y; settleMonth = m; renderSettle(); }
 }
 
 function renderExpenseCal() {
