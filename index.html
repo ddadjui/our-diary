@@ -34,7 +34,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
 #header button{background:none;border:none;font-size:20px;cursor:pointer;padding:4px}
 #page-area{flex:1;overflow-y:auto;padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 8px)}
 #nav{height:auto;min-height:var(--nav-h);background:var(--white);display:flex;position:fixed;bottom:0;left:0;right:0;box-shadow:0 -1px 8px rgba(0,0,0,.1);z-index:100;padding-bottom:env(safe-area-inset-bottom,0px)}
-#nav::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-area-inset-bottom,0px);background:var(--white);z-index:99}
+#nav::after{content:'';display:block;width:100%;height:env(safe-area-inset-bottom,0px);background:var(--white)}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:none;cursor:pointer;font-size:9px;color:var(--gray);transition:.15s;padding:6px 0}
 .nav-btn .nav-icon{font-size:22px;line-height:1}
 .nav-btn.active{color:var(--pink)}
@@ -254,7 +254,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
     <div id="page-expense" class="page active">
       <div class="sub-tabs">
         <div class="sub-tab active" onclick="switchExpenseTab('boy',this)">🐭 주머니쥐</div>
-        <div class="sub-tab" onclick="switchExpenseTab('girl',this)">👧 누나양</div>
+        <div class="sub-tab" onclick="switchExpenseTab('girl',this)">🐱 땃쥐</div>
         <div class="sub-tab" onclick="switchExpenseTab('shared',this)">🤝 공금</div>
       </div>
       <div class="month-nav">
@@ -444,6 +444,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
         <div class="cat-chip" data-cat="생활비" onclick="selectCat(this)">🏠 생활비</div>
         <div class="cat-chip" data-cat="선물" onclick="selectCat(this)">🎁 선물</div>
         <div class="cat-chip" data-cat="쿠팡카드" onclick="selectCat(this)">💳 쿠팡카드</div>
+        <div class="cat-chip" data-cat="공금지출" onclick="selectCat(this)">🤝 공금지출</div>
         <div class="cat-chip" data-cat="기타" onclick="selectCat(this)">📦 기타</div>
       </div>
     </div>
@@ -460,8 +461,12 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
     <div class="sheet-handle"></div>
     <h2 id="meal-modal-title"></h2>
     <div class="form-group">
-      <label>식단</label>
-      <input type="text" id="meal-input" placeholder="예: 닭도리탕, 된장국">
+      <label>🌞 점심</label>
+      <input type="text" id="meal-lunch-input" placeholder="예: 닭도리탕">
+    </div>
+    <div class="form-group">
+      <label>🌙 저녁</label>
+      <input type="text" id="meal-dinner-input" placeholder="예: 된장찌개">
     </div>
     <div class="btn-row">
       <button class="btn btn-gray" onclick="closeModal('meal-overlay')">취소</button>
@@ -520,7 +525,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
 //  State & Config
 // ══════════════════════════════════════════════
 const STORAGE_KEY = 'hh-fb-config';
-const CAT_ICONS = {식비:'🍽️',교통:'🚇',쇼핑:'🛍️',의료:'💊',구독:'📱',여가:'🎮',생활비:'🏠',선물:'🎁',쿠팡카드:'💳',기타:'📦'};
+const CAT_ICONS = {식비:'🍽️',교통:'🚇',쇼핑:'🛍️',의료:'💊',구독:'📱',여가:'🎮',생활비:'🏠',선물:'🎁',쿠팡카드:'💳',공금지출:'🤝',기타:'📦'};
 
 // 한국 공휴일
 const HOLIDAYS = (() => {
@@ -560,6 +565,8 @@ const HOLIDAYS = (() => {
     [2027,10,4,'대체공휴일(개천절)'],
     [2027,10,11,'대체공휴일(한글날)'],
   ].forEach(([y,m,d,n]) => add(y,m,d,n));
+  add(2026,6,3,'지방선거');
+  add(2026,7,17,'제헌절');
   return h;
 })();
 
@@ -856,7 +863,6 @@ function renderExpenseCal() {
     const arr = Object.values(items);
     const holiday = HOLIDAYS[hKeyE(d)];
     const parts = [];
-    if (holiday) parts.push(`<span class="preview-holiday">${escHtml(holiday)}</span>`);
     if (arr.length) {
       const dayTotal = arr.reduce((s,i) => s + Number(i.amount||0), 0);
       parts.push(`<span class="preview-amt">${fmt(dayTotal)}</span>`);
@@ -877,16 +883,8 @@ function openExpenseDayModal(d) {
   const monthData = tabData[key] || {};
   const items = monthData[dayStr] || {};
 
-  const tabLabel = {boy:'주머니쥐', girl:'누나양', shared:'공금'}[expenseTab];
+  const tabLabel = {boy:'주머니쥐', girl:'땃쥐', shared:'공금'}[expenseTab];
   const dayTotal = Object.values(items).reduce((s,i) => s + Number(i.amount||0), 0);
-  // Calc grand total across all tabs for that day
-  const allExpenses = appData.expenses || {};
-  let grandDayTotal = 0;
-  ['boy','girl','shared'].forEach(t => {
-    const tData = (allExpenses[t] || {})[key] || {};
-    const tItems = tData[dayStr] || {};
-    Object.values(tItems).forEach(i => { grandDayTotal += Number(i.amount||0); });
-  });
   document.getElementById('exp-detail-title').textContent =
     `${expenseMonth}월 ${d}일 · ${tabLabel}`;
 
@@ -910,12 +908,6 @@ function openExpenseDayModal(d) {
         <div class="exp-cat-icon">💰</div>
         <div class="exp-info"><div class="exp-desc" style="font-weight:700">${tabLabel} 소계</div></div>
         <div class="exp-amount" style="color:var(--pink)">${fmt(dayTotal)}</div>
-      </div>
-    ` : '') + (grandDayTotal > dayTotal ? `
-      <div class="exp-item" style="padding-top:4px">
-        <div class="exp-cat-icon">📊</div>
-        <div class="exp-info"><div class="exp-desc" style="font-weight:700;color:var(--gray)">이 날 전체</div></div>
-        <div class="exp-amount" style="font-weight:700">${fmt(grandDayTotal)}</div>
       </div>
     ` : '');
   }
@@ -989,7 +981,12 @@ function renderMealCal() {
     const holiday = HOLIDAYS[hKeyM(d)];
     const parts = [];
     if (holiday) parts.push(`<span class="preview-holiday">${escHtml(holiday)}</span>`);
-    if (m) parts.push(`<span class="preview-meal">${escHtml(m)}</span>`);
+    if (m) {
+      const lunch = typeof m === 'string' ? m : (m.lunch || '');
+      const dinner = typeof m === 'string' ? '' : (m.dinner || '');
+      if (lunch) parts.push(`<span class="preview-meal" style="font-size:8px">🌞${escHtml(lunch)}</span>`);
+      if (dinner) parts.push(`<span class="preview-meal" style="font-size:8px">🌙${escHtml(dinner)}</span>`);
+    }
     return parts.join('<br>');
   }, 'onMealDayClick', (d) => HOLIDAYS[hKeyM(d)] ? 'holiday' : '');
 }
@@ -999,17 +996,23 @@ function onMealDayClick(event, d) {
   const dayStr = String(d).padStart(2,'0');
   const key = ym(mealYear, mealMonth);
   const meals = (appData.meals || {})[key] || {};
-  const current = meals[dayStr] || '';
+  const current = meals[dayStr] || {};
+  // backward compat: if stored as string
+  const lunch = typeof current === 'string' ? current : (current.lunch || '');
+  const dinner = typeof current === 'string' ? '' : (current.dinner || '');
   document.getElementById('meal-modal-title').textContent = `${mealMonth}월 ${d}일 식단`;
-  document.getElementById('meal-input').value = current;
+  document.getElementById('meal-lunch-input').value = lunch;
+  document.getElementById('meal-dinner-input').value = dinner;
   openModal('meal-overlay');
 }
 
 function saveMeal() {
-  const val = document.getElementById('meal-input').value.trim();
+  const lunch = document.getElementById('meal-lunch-input').value.trim();
+  const dinner = document.getElementById('meal-dinner-input').value.trim();
   const dayStr = String(editingMealDay).padStart(2,'0');
   const key = ym(mealYear, mealMonth);
   const path = `${room}/meals/${key}/${dayStr}`;
+  const val = (lunch || dinner) ? { lunch, dinner } : null;
   const op = val ? db.ref(path).set(val) : db.ref(path).remove();
   op.then(() => { closeModal('meal-overlay'); showToast('식단을 저장했어요 🍱'); })
     .catch(e => showToast('저장 실패: ' + e.message));
@@ -1234,57 +1237,75 @@ function renderSettle() {
   const sharedTotal = sumMonth('shared');
   const boyCoupang = sumMonth('boy', '쿠팡카드');
   const girlCoupang = sumMonth('girl', '쿠팡카드');
-  const sharedCoupang = sumMonth('shared', '쿠팡카드');
-  const boyPersonal = boyTotal - boyCoupang;
-  const girlPersonal = girlTotal - girlCoupang;
-  const sharedOther = sharedTotal - sharedCoupang;
-  const grandTotal = boyTotal + girlTotal + sharedTotal;
+  const boyPublicCat = sumMonth('boy', '공금지출');   // 주머니쥐가 선결제한 공금
+  const girlPublicCat = sumMonth('girl', '공금지출');  // 땃쥐가 선결제한 공금
 
-  // Shared split 50/50
-  const sharedEach = Math.round(sharedTotal / 2);
+  // 개인 순수 지출 (쿠팡이츠·공금선결제 제외)
+  const boyPersonal = boyTotal - boyCoupang - boyPublicCat;
+  const girlPersonal = girlTotal - girlCoupang - girlPublicCat;
 
-  // Net transfer: (boy personal - girl personal) / 2 + sharedEach
+  // 총 공금 (공금탭 + 개인 선결제)
+  const totalShared = sharedTotal + boyPublicCat + girlPublicCat;
+  const sharedEach = Math.round(totalShared / 2);
+
+  // 개인 지출 차액
   const diff = boyPersonal - girlPersonal;
-  let transferAmt = Math.round(Math.abs(diff) / 2) + sharedEach;
-  let transferMsg = '';
-  if (transferAmt < 100) {
-    transferMsg = '정산 금액이 거의 없어요! 👏';
-  } else if (diff > 0) {
-    transferMsg = `누나양이 주머니쥐에게\n${fmt(transferAmt)} 보내주세요`;
-  } else {
-    transferMsg = `주머니쥐가 누나양에게\n${fmt(transferAmt)} 보내주세요`;
-  }
+  const personalTransfer = Math.round(Math.abs(diff) / 2);
+  let personalMsg = '';
+  if (personalTransfer < 100) personalMsg = '개인 지출 균등 👏';
+  else if (diff > 0) personalMsg = `땃쥐 → 주머니쥐 ${fmt(personalTransfer)}`;
+  else personalMsg = `주머니쥐 → 땃쥐 ${fmt(personalTransfer)}`;
+
+  // 공금 분담 (개인 선결제 차감 후 추가 납부)
+  const boySharedDue = sharedEach - boyPublicCat;
+  const girlSharedDue = sharedEach - girlPublicCat;
+
+  // 쿠팡이츠 이체 (땃쥐→주머니쥐KB, 다음달10일)
+  // 주머니쥐는 이미 본인KB이므로 별도이체 없음
 
   const settled = settlementData.settled || false;
 
   document.getElementById('settle-content').innerHTML = `
-    <div class="settle-card">
-      <div class="settle-row"><span class="settle-label">🐭 주머니쥐 지출</span><span class="settle-val">${fmt(boyTotal)}</span></div>
-      ${boyCoupang > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 💳 주머니쥐 쿠팡카드</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(boyCoupang)}</span></div>` : ''}
-      <div class="settle-row"><span class="settle-label">👧 누나양 지출</span><span class="settle-val">${fmt(girlTotal)}</span></div>
-      ${girlCoupang > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 💳 누나양 쿠팡카드</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(girlCoupang)}</span></div>` : ''}
-      <div class="settle-row"><span class="settle-label">🤝 공금 지출</span><span class="settle-val">${fmt(sharedOther)}</span></div>
-      ${sharedCoupang > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 💳 공금 쿠팡카드</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(sharedCoupang)}</span></div>` : ''}
-      <div class="settle-row" style="font-weight:700"><span class="settle-label">합계</span><span class="settle-val">${fmt(grandTotal)}</span></div>
+  <div class="settle-card">
+    <h3>지출 내역</h3>
+    <div class="settle-row"><span class="settle-label">🐭 주머니쥐</span><span class="settle-val">${fmt(boyTotal)}</span></div>
+    ${boyCoupang > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 💳 쿠팡이츠</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(boyCoupang)}</span></div>` : ''}
+    ${boyPublicCat > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 🤝 공금 선결제</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(boyPublicCat)}</span></div>` : ''}
+    <div class="settle-row"><span class="settle-label">🐱 땃쥐</span><span class="settle-val">${fmt(girlTotal)}</span></div>
+    ${girlCoupang > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 💳 쿠팡이츠</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(girlCoupang)}</span></div>` : ''}
+    ${girlPublicCat > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 🤝 공금 선결제</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(girlPublicCat)}</span></div>` : ''}
+    <div class="settle-row"><span class="settle-label">🤝 공금 탭</span><span class="settle-val">${fmt(sharedTotal)}</span></div>
+  </div>
+  <div class="settle-card">
+    <h3>공금 분담 (50:50)</h3>
+    <div class="settle-row"><span class="settle-label">총 공금</span><span class="settle-val">${fmt(totalShared)}</span></div>
+    <div class="settle-row"><span class="settle-label">각자 부담액</span><span class="settle-val">${fmt(sharedEach)}</span></div>
+    <div class="settle-row"><span class="settle-label" style="font-size:12px">└ 주머니쥐 추가납부</span><span class="settle-val" style="font-size:13px">${boySharedDue > 0 ? fmt(boySharedDue) : '환급 ' + fmt(-boySharedDue)}</span></div>
+    <div class="settle-row"><span class="settle-label" style="font-size:12px">└ 땃쥐 추가납부</span><span class="settle-val" style="font-size:13px">${girlSharedDue > 0 ? fmt(girlSharedDue) : '환급 ' + fmt(-girlSharedDue)}</span></div>
+  </div>
+  ${(boyCoupang > 0 || girlCoupang > 0) ? `
+  <div class="settle-card">
+    <h3>💳 쿠팡이츠 이체 (다음달 10일까지)</h3>
+    <div class="settle-row" style="font-size:13px;color:var(--gray)"><span>주머니쥐 KB국민은행 계좌로</span></div>
+    ${boyCoupang > 0 ? `<div class="settle-row"><span class="settle-label">🐭 주머니쥐 납부</span><span class="settle-val">${fmt(boyCoupang)}</span></div>` : ''}
+    ${girlCoupang > 0 ? `<div class="settle-row"><span class="settle-label">🐱 땃쥐 납부</span><span class="settle-val">${fmt(girlCoupang)}</span></div>` : ''}
+  </div>` : ''}
+  <div class="settle-card">
+    <h3>🧮 개인 지출 정산</h3>
+    <div class="settle-row"><span class="settle-label">주머니쥐 개인</span><span class="settle-val">${fmt(boyPersonal)}</span></div>
+    <div class="settle-row"><span class="settle-label">땃쥐 개인</span><span class="settle-val">${fmt(girlPersonal)}</span></div>
+    <div class="settle-result">
+      <div class="result-text">${personalMsg}</div>
     </div>
-    <div class="settle-card">
-      <h3>공금 분담 (50:50)</h3>
-      <div class="settle-row"><span class="settle-label">공금 각자 부담</span><span class="settle-val">${fmt(sharedEach)}</span></div>
-    </div>
-    <div class="settle-card">
-      <h3>정산 결과</h3>
-      <div class="settle-result">
-        <div class="result-text" style="white-space:pre-line">${transferMsg}</div>
-      </div>
-      <div class="settle-done-btn">
-        ${settled
-          ? `<div style="text-align:center;padding:8px"><span class="settled-badge">✓ 정산 완료</span></div>
-             <button class="btn btn-gray" onclick="toggleSettle(false)">정산 취소</button>`
-          : `<button class="btn btn-mint" onclick="toggleSettle(true)">✅ 정산 완료</button>`
-        }
-      </div>
-    </div>
-  `;
+  </div>
+  <div class="settle-done-btn">
+    ${settled
+      ? `<div style="text-align:center;padding:8px"><span class="settled-badge">✓ 정산 완료</span></div>
+         <button class="btn btn-gray" onclick="toggleSettle(false)">정산 취소</button>`
+      : `<button class="btn btn-mint" onclick="toggleSettle(true)">✅ 정산 완료</button>`
+    }
+  </div>
+`;
 }
 
 function toggleSettle(done) {
@@ -1325,10 +1346,36 @@ function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// ── Swipe navigation ──
+function addSwipe(el, onLeft, onRight) {
+  let sx = null, sy = null;
+  el.addEventListener('touchstart', e => {
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+  }, {passive:true});
+  el.addEventListener('touchend', e => {
+    if (sx === null) return;
+    const dx = e.changedTouches[0].clientX - sx;
+    const dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
+      if (dx < 0) onLeft(); else onRight();
+    }
+    sx = null; sy = null;
+  }, {passive:true});
+}
+
 // ══════════════════════════════════════════════
 //  Kick off
 // ══════════════════════════════════════════════
 init();
+
+// Attach swipe after DOM ready
+setTimeout(() => {
+  addSwipe(document.getElementById('page-expense'), () => changeExpenseMonth(1), () => changeExpenseMonth(-1));
+  addSwipe(document.getElementById('page-meal'), () => changeMealMonth(1), () => changeMealMonth(-1));
+  addSwipe(document.getElementById('page-schedule'), () => changeScheduleMonth(1), () => changeScheduleMonth(-1));
+  addSwipe(document.getElementById('page-settle'), () => changeSettleMonth(1), () => changeSettleMonth(-1));
+}, 500);
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));

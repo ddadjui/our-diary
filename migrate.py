@@ -115,10 +115,8 @@ def parse_entry(raw: str):
 
     amount = abs(amount)  # 누나양 시트는 -로 표기
 
-    # desc = 금액 부분을 제거한 나머지
+    # desc = 금액 부분을 제거한 나머지 (괄호 메모 보존)
     desc = raw[:m.start()].strip()
-    # 괄호 속 메모 제거 (쿠팡 / 데이트 / 개인 등)
-    desc = re.sub(r"\([^)]*\)", "", desc).strip()
     # 금액 앞의 공백만 남긴 경우 처리
     if not desc:
         desc = raw
