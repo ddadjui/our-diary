@@ -145,6 +145,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
 .exp-amount{font-size:15px;font-weight:700;color:#333;white-space:nowrap}
 .exp-del{background:none;border:none;font-size:18px;color:#ccc;cursor:pointer;padding:4px;flex-shrink:0}
 .exp-del:active{color:#ff5a5a}
+.exp-edit{background:none;border:none;font-size:15px;color:#ccc;cursor:pointer;padding:4px;flex-shrink:0}
+.exp-edit:active{color:var(--blue)}
 
 /* ───── Todo ───── */
 .todo-input-row{display:flex;gap:8px;margin-bottom:14px}
@@ -467,7 +469,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
 <div class="overlay" id="exp-add-overlay" onclick="overlayClickClose(event,'exp-add-overlay')">
   <div class="sheet">
     <div class="sheet-handle"></div>
-    <h2>지출 추가</h2>
+    <h2 id="exp-add-title">지출 추가</h2>
     <div class="form-group">
       <label>내용</label>
       <input type="text" id="exp-desc" placeholder="예: 점심 김치찌개">
@@ -494,7 +496,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
     </div>
     <div class="btn-row">
       <button class="btn btn-gray" onclick="closeModal('exp-add-overlay')">취소</button>
-      <button class="btn btn-primary" onclick="saveExpense()">저장</button>
+      <button class="btn btn-primary" id="exp-save-btn" onclick="saveExpense()">저장</button>
     </div>
   </div>
 </div>
@@ -700,6 +702,8 @@ let selectedCat = '식비';
 let editingRecipeId = null;
 let editingScheduleDay = null;
 let editingMealDay = null;
+let editingExpenseId = null;
+let editingExpenseDayStr = null;
 let schedWho = '';
 let coupangDoneWho = 'boy';
 
@@ -1029,6 +1033,7 @@ function openExpenseDayModal(d) {
           <div class="exp-cat">${item.cat || '기타'}</div>
         </div>
         <div class="exp-amount">${fmt(item.amount || 0)}</div>
+        <button class="exp-edit" onclick="openExpenseEdit('${dayStr}','${id}')">✏️</button>
         <button class="exp-del" onclick="deleteExpense('${dayStr}','${id}')">✕</button>
       </div>
     `).join('') + (dayTotal > 0 ? `
@@ -1056,12 +1061,33 @@ function openExpenseDayModal(d) {
 }
 
 function openExpenseAdd() {
-  // Reset form
+  editingExpenseId = null;
+  editingExpenseDayStr = null;
+  document.getElementById('exp-add-title').textContent = '지출 추가';
+  document.getElementById('exp-save-btn').textContent = '저장';
   document.getElementById('exp-desc').value = '';
   document.getElementById('exp-amount').value = '';
   document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('selected'));
   document.querySelector('.cat-chip[data-cat="식비"]').classList.add('selected');
   selectedCat = '식비';
+  openModal('exp-add-overlay');
+}
+
+function openExpenseEdit(dayStr, id) {
+  const key = ym(expenseYear, expenseMonth);
+  const item = ((appData.expenses || {})[expenseTab] || {})[key]?.[dayStr]?.[id];
+  if (!item) { showToast('항목을 찾을 수 없어요'); return; }
+
+  editingExpenseId = id;
+  editingExpenseDayStr = dayStr;
+  document.getElementById('exp-add-title').textContent = '지출 수정';
+  document.getElementById('exp-save-btn').textContent = '수정 완료';
+  document.getElementById('exp-desc').value = item.desc || '';
+  document.getElementById('exp-amount').value = item.amount || '';
+  document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('selected'));
+  const catEl = document.querySelector(`.cat-chip[data-cat="${item.cat || '기타'}"]`);
+  if (catEl) catEl.classList.add('selected');
+  selectedCat = item.cat || '기타';
   openModal('exp-add-overlay');
 }
 
@@ -1077,17 +1103,28 @@ function saveExpense() {
   if (!desc) { showToast('내용을 입력해주세요'); return; }
   if (!amount) { showToast('금액을 입력해주세요'); return; }
 
-  const dayStr = String(selectedDay).padStart(2,'0');
   const key = ym(expenseYear, expenseMonth);
-  const path = `${room}/expenses/${expenseTab}/${key}/${dayStr}`;
-  db.ref(path).push({ desc, amount, cat: selectedCat, ts: Date.now() })
-    .then(() => {
-      closeModal('exp-add-overlay');
-      showToast('지출을 추가했어요 💸');
-      // refresh detail
-      setTimeout(() => openExpenseDayModal(selectedDay), 200);
-    })
-    .catch(e => showToast('저장 실패: ' + e.message));
+
+  if (editingExpenseId) {
+    const path = `${room}/expenses/${expenseTab}/${key}/${editingExpenseDayStr}/${editingExpenseId}`;
+    db.ref(path).update({ desc, amount, cat: selectedCat })
+      .then(() => {
+        closeModal('exp-add-overlay');
+        showToast('수정했어요 ✅');
+        setTimeout(() => openExpenseDayModal(selectedDay), 200);
+      })
+      .catch(e => showToast('저장 실패: ' + e.message));
+  } else {
+    const dayStr = String(selectedDay).padStart(2,'0');
+    const path = `${room}/expenses/${expenseTab}/${key}/${dayStr}`;
+    db.ref(path).push({ desc, amount, cat: selectedCat, ts: Date.now() })
+      .then(() => {
+        closeModal('exp-add-overlay');
+        showToast('지출을 추가했어요 💸');
+        setTimeout(() => openExpenseDayModal(selectedDay), 200);
+      })
+      .catch(e => showToast('저장 실패: ' + e.message));
+  }
 }
 
 function deleteExpense(dayStr, id) {
