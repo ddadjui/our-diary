@@ -17,7 +17,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:'Noto Sans KR',sans-serif;background:#f8f9fa;color:#333;min-height:100vh;overflow-x:hidden}
+html{background:var(--white)}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;min-height:100vh;overflow-x:hidden}
 :root{
   --pink:#FF8FAB;--blue:#89C4E1;--mint:#7DCFB6;
   --pink-light:#fff0f3;--blue-light:#eaf5fb;--mint-light:#edfaf6;
@@ -33,6 +34,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f8f9fa;color:#333;min-hei
 #header button{background:none;border:none;font-size:20px;cursor:pointer;padding:4px}
 #page-area{flex:1;overflow-y:auto;padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 8px)}
 #nav{height:auto;min-height:var(--nav-h);background:var(--white);display:flex;position:fixed;bottom:0;left:0;right:0;box-shadow:0 -1px 8px rgba(0,0,0,.1);z-index:100;padding-bottom:env(safe-area-inset-bottom,0px)}
+#nav::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-area-inset-bottom,0px);background:var(--white);z-index:99}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:none;cursor:pointer;font-size:9px;color:var(--gray);transition:.15s;padding:6px 0}
 .nav-btn .nav-icon{font-size:22px;line-height:1}
 .nav-btn.active{color:var(--pink)}
