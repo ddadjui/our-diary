@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>우리 가계부 💑</title>
 <meta name="description" content="우리 둘만의 가계부">
 <meta name="theme-color" content="#FF8FAB">
@@ -31,8 +31,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f8f9fa;color:#333;min-hei
 #header h1{font-size:18px;font-weight:700;color:var(--pink)}
 #header .header-right{display:flex;gap:8px}
 #header button{background:none;border:none;font-size:20px;cursor:pointer;padding:4px}
-#page-area{flex:1;overflow-y:auto;padding-bottom:calc(var(--nav-h)+8px)}
-#nav{height:var(--nav-h);background:var(--white);display:flex;position:fixed;bottom:0;left:0;right:0;box-shadow:0 -1px 8px rgba(0,0,0,.1);z-index:100}
+#page-area{flex:1;overflow-y:auto;padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 8px)}
+#nav{height:auto;min-height:var(--nav-h);background:var(--white);display:flex;position:fixed;bottom:0;left:0;right:0;box-shadow:0 -1px 8px rgba(0,0,0,.1);z-index:100;padding-bottom:env(safe-area-inset-bottom,0px)}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:none;cursor:pointer;font-size:9px;color:var(--gray);transition:.15s;padding:6px 0}
 .nav-btn .nav-icon{font-size:22px;line-height:1}
 .nav-btn.active{color:var(--pink)}
@@ -76,9 +76,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f8f9fa;color:#333;min-hei
 .cal-preview .preview-amt{font-size:9px;font-weight:700;color:var(--pink)}
 .cal-preview .preview-meal{color:var(--mint);font-weight:500}
 .cal-preview .preview-sched{color:var(--blue)}
+.cal-preview .preview-holiday{color:#e05555;font-weight:600}
+.cal-cell.holiday .cal-day{color:#e05555}
 
 /* ───── FAB ───── */
-.fab{position:fixed;bottom:calc(var(--nav-h)+16px);right:16px;width:52px;height:52px;border-radius:50%;background:var(--pink);color:#fff;border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 12px rgba(255,143,171,.5);display:flex;align-items:center;justify-content:center;z-index:90;transition:.15s}
+.fab{position:fixed;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 16px);right:16px;width:52px;height:52px;border-radius:50%;background:var(--pink);color:#fff;border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 12px rgba(255,143,171,.5);display:flex;align-items:center;justify-content:center;z-index:90;transition:.15s}
 .fab:active{transform:scale(.93)}
 
 /* ───── Modal Overlay ───── */
@@ -302,6 +304,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f8f9fa;color:#333;min-hei
 
     <!-- 레시피 -->
     <div id="page-recipe" class="page">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+        <button class="btn btn-primary btn-sm" onclick="openRecipeAdd()">+ 레시피 추가</button>
+      </div>
       <div id="recipe-list"></div>
     </div>
 
@@ -485,6 +490,31 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f8f9fa;color:#333;min-hei
 const STORAGE_KEY = 'hh-fb-config';
 const CAT_ICONS = {식비:'🍽️',교통:'🚇',쇼핑:'🛍️',의료:'💊',구독:'📱',여가:'🎮',생활비:'🏠',선물:'🎁',쿠팡카드:'💳',기타:'📦'};
 
+// 한국 공휴일
+const HOLIDAYS = (() => {
+  const h = {};
+  const add = (y,m,d,n) => { h[`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`] = n; };
+  const fixed = [[1,1,'신정'],[3,1,'삼일절'],[5,5,'어린이날'],[6,6,'현충일'],
+                 [8,15,'광복절'],[10,3,'개천절'],[10,9,'한글날'],[12,25,'크리스마스']];
+  for (let y = 2024; y <= 2028; y++) fixed.forEach(([m,d,n]) => add(y,m,d,n));
+  // 설날·추석·부처님오신날 (음력 → 양력)
+  [
+    [2024,2,9,'설날전날'],[2024,2,10,'설날'],[2024,2,11,'설날다음날'],
+    [2024,5,15,'부처님오신날'],
+    [2024,9,16,'추석전날'],[2024,9,17,'추석'],[2024,9,18,'추석다음날'],
+    [2025,1,28,'설날전날'],[2025,1,29,'설날'],[2025,1,30,'설날다음날'],
+    [2025,5,5,'부처님오신날'],
+    [2025,10,5,'추석전날'],[2025,10,6,'추석'],[2025,10,7,'추석다음날'],
+    [2026,2,16,'설날전날'],[2026,2,17,'설날'],[2026,2,18,'설날다음날'],
+    [2026,5,24,'부처님오신날'],
+    [2026,9,24,'추석전날'],[2026,9,25,'추석'],[2026,9,26,'추석다음날'],
+    [2027,2,6,'설날전날'],[2027,2,7,'설날'],[2027,2,8,'설날다음날'],
+    [2027,5,13,'부처님오신날'],
+    [2027,10,14,'추석전날'],[2027,10,15,'추석'],[2027,10,16,'추석다음날'],
+  ].forEach(([y,m,d,n]) => add(y,m,d,n));
+  return h;
+})();
+
 // Firebase config (our-diary-240f6)
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyD1tVw17oq1EwATy85nfdzzRcVUfnE6UlY",
@@ -546,8 +576,28 @@ function initFirebase() {
       projectId: cfg.projectId || FIREBASE_CONFIG.projectId
     });
     db = firebase.database();
+    let firstLoad = true;
     db.ref(room).on('value', snap => {
       appData = snap.val() || {};
+      if (firstLoad) {
+        firstLoad = false;
+        // 데이터가 있는 가장 최근 월로 자동 이동
+        const allMonths = [];
+        const exp = appData.expenses || {};
+        ['boy','girl','shared'].forEach(tab => {
+          Object.keys(exp[tab] || {}).forEach(m => allMonths.push(m));
+        });
+        const now = new Date();
+        const nowKey = ym(now.getFullYear(), now.getMonth()+1);
+        // 현재 달에 데이터 없으면 가장 최근 데이터 달로 이동
+        const hasNowData = allMonths.some(m => m === nowKey);
+        if (!hasNowData && allMonths.length) {
+          const latest = allMonths.sort().reverse()[0];
+          const [y, mo] = latest.split('-').map(Number);
+          expenseYear = settleYear = y;
+          expenseMonth = settleMonth = mo;
+        }
+      }
       renderAll();
     });
     document.getElementById('setup-screen').style.display = 'none';
@@ -630,7 +680,7 @@ function saveSettings() {
 // ══════════════════════════════════════════════
 //  Calendar Builder
 // ══════════════════════════════════════════════
-function buildCalendar(containerId, year, month, getCellContent, onDayClick) {
+function buildCalendar(containerId, year, month, getCellContent, onDayClick, getExtraClass) {
   const container = document.getElementById(containerId);
   const today = new Date();
   const firstDay = new Date(year, month - 1, 1).getDay();
@@ -647,8 +697,9 @@ function buildCalendar(containerId, year, month, getCellContent, onDayClick) {
     const sunClass = dow === 0 ? 'sun' : '';
     const satClass = dow === 6 ? 'sat' : '';
     const todayClass = isToday ? 'today' : '';
+    const extraClass = getExtraClass ? getExtraClass(d) : '';
     const content = getCellContent(d);
-    html += `<div class="cal-cell ${sunClass} ${satClass} ${todayClass}" onclick="${onDayClick}(event,${d})">
+    html += `<div class="cal-cell ${sunClass} ${satClass} ${todayClass} ${extraClass}" onclick="${onDayClick}(event,${d})">
       <div class="cal-day">${d}</div>
       ${content ? `<div class="cal-preview">${content}</div>` : ''}
     </div>`;
@@ -849,13 +900,18 @@ function renderScheduleCal() {
   const key = ym(scheduleYear, scheduleMonth);
   const schedules = (appData.schedule || {})[key] || {};
 
+  const hKey = (d) => `${scheduleYear}-${String(scheduleMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+
   buildCalendar('schedule-cal', scheduleYear, scheduleMonth, (d) => {
     const dayStr = String(d).padStart(2,'0');
+    const holiday = HOLIDAYS[hKey(d)];
     const items = schedules[dayStr] || {};
     const arr = Object.values(items);
-    if (!arr.length) return '';
-    return arr.slice(0,2).map(i => `<span class="preview-sched">${escHtml(i.title||'')}</span>`).join('<br>');
-  }, 'onScheduleDayClick');
+    const parts = [];
+    if (holiday) parts.push(`<span class="preview-holiday">🎌 ${escHtml(holiday)}</span>`);
+    arr.slice(0, holiday ? 1 : 2).forEach(i => parts.push(`<span class="preview-sched">${escHtml(i.title||'')}</span>`));
+    return parts.join('<br>');
+  }, 'onScheduleDayClick', (d) => HOLIDAYS[hKey(d)] ? 'holiday' : '');
 }
 
 function onScheduleDayClick(event, d) {
