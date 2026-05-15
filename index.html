@@ -50,7 +50,20 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f8f9fa;color:#333;min-hei
 /* ───── Month Nav ───── */
 .month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:4px 0}
 .month-nav button{background:none;border:none;font-size:22px;cursor:pointer;color:var(--gray);padding:4px 8px}
-.month-nav span{font-size:17px;font-weight:700}
+.month-nav span{font-size:17px;font-weight:700;cursor:pointer;padding:4px 10px;border-radius:20px;transition:.15s}
+.month-nav span:hover{background:var(--pink-light);color:var(--pink)}
+
+/* ───── Month Picker ───── */
+#month-picker-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:300;display:none;align-items:flex-end;justify-content:center}
+#month-picker-overlay.active{display:flex}
+#month-picker-sheet{background:var(--white);border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:20px 16px 32px;animation:slideUp .25s ease}
+.mp-year-row{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:16px}
+.mp-year-row button{background:none;border:none;font-size:24px;cursor:pointer;color:var(--gray);padding:4px 8px;line-height:1}
+.mp-year-label{font-size:18px;font-weight:700;min-width:80px;text-align:center}
+.mp-months{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.mp-month-btn{border:1.5px solid #e8e8e8;background:var(--white);border-radius:12px;padding:12px 4px;font-size:15px;font-weight:600;cursor:pointer;transition:.15s;font-family:'Noto Sans KR',sans-serif;color:var(--dark)}
+.mp-month-btn:hover{border-color:var(--pink);background:var(--pink-light);color:var(--pink)}
+.mp-month-btn.active{border-color:var(--pink);background:var(--pink);color:#fff}
 
 /* ───── Summary Card ───── */
 .summary-card{background:var(--white);border-radius:16px;padding:14px 18px;margin-bottom:12px;box-shadow:0 1px 6px rgba(0,0,0,.07)}
@@ -244,7 +257,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f8f9fa;color:#333;min-hei
       </div>
       <div class="month-nav">
         <button onclick="changeExpenseMonth(-1)">‹</button>
-        <span id="expense-month-label"></span>
+        <span id="expense-month-label" onclick="openMonthPicker('expense')"></span>
         <button onclick="changeExpenseMonth(1)">›</button>
       </div>
       <div class="summary-card">
@@ -263,7 +276,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f8f9fa;color:#333;min-hei
     <div id="page-meal" class="page">
       <div class="month-nav">
         <button onclick="changeMealMonth(-1)">‹</button>
-        <span id="meal-month-label"></span>
+        <span id="meal-month-label" onclick="openMonthPicker('meal')"></span>
         <button onclick="changeMealMonth(1)">›</button>
       </div>
       <div class="cal-wrap">
@@ -278,7 +291,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f8f9fa;color:#333;min-hei
     <div id="page-schedule" class="page">
       <div class="month-nav">
         <button onclick="changeScheduleMonth(-1)">‹</button>
-        <span id="schedule-month-label"></span>
+        <span id="schedule-month-label" onclick="openMonthPicker('schedule')"></span>
         <button onclick="changeScheduleMonth(1)">›</button>
       </div>
       <div class="cal-wrap">
@@ -314,7 +327,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f8f9fa;color:#333;min-hei
     <div id="page-settle" class="page">
       <div class="month-nav">
         <button onclick="changeSettleMonth(-1)">‹</button>
-        <span id="settle-month-label"></span>
+        <span id="settle-month-label" onclick="openMonthPicker('settle')"></span>
         <button onclick="changeSettleMonth(1)">›</button>
       </div>
       <div id="settle-content"></div>
@@ -345,6 +358,19 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f8f9fa;color:#333;min-hei
 
   <!-- FAB -->
   <button class="fab" id="fab" onclick="onFabClick()">+</button>
+</div>
+
+<!-- Month Picker -->
+<div id="month-picker-overlay" onclick="if(event.target===this)closeMonthPicker()">
+  <div id="month-picker-sheet">
+    <div class="sheet-handle"></div>
+    <div class="mp-year-row">
+      <button onclick="mpChangeYear(-1)">‹</button>
+      <div class="mp-year-label" id="mp-year-label"></div>
+      <button onclick="mpChangeYear(1)">›</button>
+    </div>
+    <div class="mp-months" id="mp-months"></div>
+  </div>
 </div>
 
 <!-- ═══════════ MODALS ═══════════ -->
@@ -714,6 +740,57 @@ function ym(year, month) {
 
 function fmt(n) {
   return '₩' + Number(n).toLocaleString();
+}
+
+// ══════════════════════════════════════════════
+//  Month Picker
+// ══════════════════════════════════════════════
+let mpTarget = null; // 'expense' | 'meal' | 'schedule' | 'settle'
+let mpYear = 2026;
+
+function openMonthPicker(target) {
+  mpTarget = target;
+  if (target === 'expense')  mpYear = expenseYear;
+  else if (target === 'meal') mpYear = mealYear;
+  else if (target === 'schedule') mpYear = scheduleYear;
+  else if (target === 'settle') mpYear = settleYear;
+  renderMonthPicker();
+  document.getElementById('month-picker-overlay').classList.add('active');
+}
+
+function closeMonthPicker() {
+  document.getElementById('month-picker-overlay').classList.remove('active');
+}
+
+function mpChangeYear(delta) {
+  mpYear += delta;
+  renderMonthPicker();
+}
+
+function renderMonthPicker() {
+  document.getElementById('mp-year-label').textContent = `${mpYear}년`;
+  let curMonth = 0;
+  if (mpTarget === 'expense')  curMonth = expenseYear === mpYear ? expenseMonth : 0;
+  else if (mpTarget === 'meal') curMonth = mealYear === mpYear ? mealMonth : 0;
+  else if (mpTarget === 'schedule') curMonth = scheduleYear === mpYear ? scheduleMonth : 0;
+  else if (mpTarget === 'settle') curMonth = settleYear === mpYear ? settleMonth : 0;
+  const container = document.getElementById('mp-months');
+  container.innerHTML = '';
+  for (let m = 1; m <= 12; m++) {
+    const btn = document.createElement('button');
+    btn.className = 'mp-month-btn' + (m === curMonth ? ' active' : '');
+    btn.textContent = `${m}월`;
+    btn.onclick = () => mpSelectMonth(m);
+    container.appendChild(btn);
+  }
+}
+
+function mpSelectMonth(month) {
+  if (mpTarget === 'expense')  { expenseYear = mpYear; expenseMonth = month; renderExpenseCal(); }
+  else if (mpTarget === 'meal') { mealYear = mpYear; mealMonth = month; renderMealCal(); }
+  else if (mpTarget === 'schedule') { scheduleYear = mpYear; scheduleMonth = month; renderScheduleCal(); }
+  else if (mpTarget === 'settle') { settleYear = mpYear; settleMonth = month; renderSettle(); }
+  closeMonthPicker();
 }
 
 // ══════════════════════════════════════════════
