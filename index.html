@@ -33,8 +33,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
 #header .header-right{display:flex;gap:8px}
 #header button{background:none;border:none;font-size:20px;cursor:pointer;padding:4px}
 #page-area{flex:1;overflow-y:auto;padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 8px)}
-#nav{height:auto;min-height:var(--nav-h);background:var(--white);display:flex;position:fixed;bottom:0;left:0;right:0;box-shadow:0 -1px 8px rgba(0,0,0,.1);z-index:100;padding-bottom:env(safe-area-inset-bottom,0px)}
-#nav::after{content:'';display:block;width:100%;height:env(safe-area-inset-bottom,0px);background:var(--white)}
+#nav{background:#fff;display:flex;flex-direction:column;position:fixed;bottom:0;left:0;right:0;box-shadow:0 -1px 8px rgba(0,0,0,.1);z-index:100}
+#nav-buttons{display:flex;height:var(--nav-h)}
+#nav-safe{height:env(safe-area-inset-bottom,0px);min-height:0;background:#fff;flex-shrink:0}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:none;cursor:pointer;font-size:9px;color:var(--gray);transition:.15s;padding:6px 0}
 .nav-btn .nav-icon{font-size:22px;line-height:1}
 .nav-btn.active{color:var(--pink)}
@@ -202,6 +203,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
 @media (min-width:768px){
   /* Sidebar nav */
   #nav{top:0;bottom:0;left:0;right:auto;width:200px;height:auto;flex-direction:column;justify-content:flex-start;padding-top:var(--header-h);box-shadow:1px 0 8px rgba(0,0,0,.08)}
+  #nav-buttons{flex-direction:column;height:auto;width:100%}
+  #nav-safe{display:none}
   .nav-btn{flex-direction:row;justify-content:flex-start;gap:12px;padding:14px 20px;font-size:14px;width:100%}
   .nav-btn .nav-icon{font-size:20px}
   .nav-btn.active{background:var(--pink-light);color:var(--pink)}
@@ -349,24 +352,27 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
 
   <!-- Bottom Nav -->
   <nav id="nav">
-    <button class="nav-btn active" onclick="switchPage('expense',this)">
-      <span class="nav-icon">💰</span>가계부
-    </button>
-    <button class="nav-btn" onclick="switchPage('meal',this)">
-      <span class="nav-icon">🍽️</span>급식표
-    </button>
-    <button class="nav-btn" onclick="switchPage('schedule',this)">
-      <span class="nav-icon">📅</span>일정표
-    </button>
-    <button class="nav-btn" onclick="switchPage('todo',this)">
-      <span class="nav-icon">✅</span>할 일
-    </button>
-    <button class="nav-btn" onclick="switchPage('recipe',this)">
-      <span class="nav-icon">📖</span>레시피
-    </button>
-    <button class="nav-btn" onclick="switchPage('settle',this)">
-      <span class="nav-icon">🤝</span>정산
-    </button>
+    <div id="nav-buttons">
+      <button class="nav-btn active" onclick="switchPage('expense',this)">
+        <span class="nav-icon">💰</span>가계부
+      </button>
+      <button class="nav-btn" onclick="switchPage('meal',this)">
+        <span class="nav-icon">🍽️</span>급식표
+      </button>
+      <button class="nav-btn" onclick="switchPage('schedule',this)">
+        <span class="nav-icon">📅</span>일정표
+      </button>
+      <button class="nav-btn" onclick="switchPage('todo',this)">
+        <span class="nav-icon">✅</span>할 일
+      </button>
+      <button class="nav-btn" onclick="switchPage('recipe',this)">
+        <span class="nav-icon">📖</span>레시피
+      </button>
+      <button class="nav-btn" onclick="switchPage('settle',this)">
+        <span class="nav-icon">🤝</span>정산
+      </button>
+    </div>
+    <div id="nav-safe"></div>
   </nav>
 
   <!-- FAB -->
