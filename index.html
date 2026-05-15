@@ -497,8 +497,12 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
       <input type="text" id="recipe-title-input" placeholder="예: 부대찌개">
     </div>
     <div class="form-group">
-      <label>내용</label>
-      <textarea id="recipe-content-input" placeholder="재료 및 조리법을 적어주세요..."></textarea>
+      <label>재료</label>
+      <textarea id="recipe-ingredients-input" placeholder="스팸, 베이컨, 김치, 두부, 어묵..." style="min-height:80px"></textarea>
+    </div>
+    <div class="form-group">
+      <label>조리 순서</label>
+      <textarea id="recipe-steps-input" placeholder="1. 재료를 손질한다&#10;2. 냄비에 물을 끓인다&#10;3. ..." style="min-height:120px"></textarea>
     </div>
     <div class="btn-row">
       <button class="btn btn-danger btn-sm" id="recipe-del-btn" onclick="deleteRecipe()" style="display:none;width:auto">삭제</button>
@@ -829,15 +833,20 @@ function renderExpenseCal() {
   });
   document.getElementById('expense-summary').textContent = fmt(total);
 
+  const hKeyE = (d) => `${expenseYear}-${String(expenseMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
   buildCalendar('expense-cal', expenseYear, expenseMonth, (d) => {
     const dayStr = String(d).padStart(2,'0');
     const items = monthData[dayStr] || {};
     const arr = Object.values(items);
-    if (!arr.length) return '';
-    const dayTotal = arr.reduce((s,i) => s + Number(i.amount||0), 0);
-    const previews = arr.slice(0,2).map(i => `<span>${i.desc||''}</span>`).join(' ');
-    return `${previews}<br><span class="preview-amt">${fmt(dayTotal)}</span>`;
-  }, 'onExpenseDayClick');
+    const holiday = HOLIDAYS[hKeyE(d)];
+    const parts = [];
+    if (holiday) parts.push(`<span class="preview-holiday">${escHtml(holiday)}</span>`);
+    if (arr.length) {
+      const dayTotal = arr.reduce((s,i) => s + Number(i.amount||0), 0);
+      parts.push(`<span class="preview-amt">${fmt(dayTotal)}</span>`);
+    }
+    return parts.join('<br>');
+  }, 'onExpenseDayClick', (d) => HOLIDAYS[hKeyE(d)] ? 'holiday' : '');
 }
 
 function onExpenseDayClick(event, d) {
@@ -853,8 +862,17 @@ function openExpenseDayModal(d) {
   const items = monthData[dayStr] || {};
 
   const tabLabel = {boy:'주머니쥐', girl:'누나양', shared:'공금'}[expenseTab];
+  const dayTotal = Object.values(items).reduce((s,i) => s + Number(i.amount||0), 0);
+  // Calc grand total across all tabs for that day
+  const allExpenses = appData.expenses || {};
+  let grandDayTotal = 0;
+  ['boy','girl','shared'].forEach(t => {
+    const tData = (allExpenses[t] || {})[key] || {};
+    const tItems = tData[dayStr] || {};
+    Object.values(tItems).forEach(i => { grandDayTotal += Number(i.amount||0); });
+  });
   document.getElementById('exp-detail-title').textContent =
-    `${expenseMonth}/${d} ${tabLabel}`;
+    `${expenseMonth}월 ${d}일 · ${tabLabel}`;
 
   const list = document.getElementById('exp-detail-list');
   const arr = Object.entries(items);
@@ -871,7 +889,19 @@ function openExpenseDayModal(d) {
         <div class="exp-amount">${fmt(item.amount || 0)}</div>
         <button class="exp-del" onclick="deleteExpense('${dayStr}','${id}')">✕</button>
       </div>
-    `).join('');
+    `).join('') + (dayTotal > 0 ? `
+      <div class="exp-item" style="border-top:2px solid #f0f0f0;margin-top:4px;padding-top:10px">
+        <div class="exp-cat-icon">💰</div>
+        <div class="exp-info"><div class="exp-desc" style="font-weight:700">${tabLabel} 소계</div></div>
+        <div class="exp-amount" style="color:var(--pink)">${fmt(dayTotal)}</div>
+      </div>
+    ` : '') + (grandDayTotal > dayTotal ? `
+      <div class="exp-item" style="padding-top:4px">
+        <div class="exp-cat-icon">📊</div>
+        <div class="exp-info"><div class="exp-desc" style="font-weight:700;color:var(--gray)">이 날 전체</div></div>
+        <div class="exp-amount" style="font-weight:700">${fmt(grandDayTotal)}</div>
+      </div>
+    ` : '');
   }
   openModal('exp-detail-overlay');
 }
@@ -936,11 +966,16 @@ function renderMealCal() {
   const key = ym(mealYear, mealMonth);
   const meals = (appData.meals || {})[key] || {};
 
+  const hKeyM = (d) => `${mealYear}-${String(mealMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
   buildCalendar('meal-cal', mealYear, mealMonth, (d) => {
     const dayStr = String(d).padStart(2,'0');
     const m = meals[dayStr];
-    return m ? `<span class="preview-meal">${escHtml(m)}</span>` : '';
-  }, 'onMealDayClick');
+    const holiday = HOLIDAYS[hKeyM(d)];
+    const parts = [];
+    if (holiday) parts.push(`<span class="preview-holiday">${escHtml(holiday)}</span>`);
+    if (m) parts.push(`<span class="preview-meal">${escHtml(m)}</span>`);
+    return parts.join('<br>');
+  }, 'onMealDayClick', (d) => HOLIDAYS[hKeyM(d)] ? 'holiday' : '');
 }
 
 function onMealDayClick(event, d) {
@@ -987,7 +1022,7 @@ function renderScheduleCal() {
     const items = schedules[dayStr] || {};
     const arr = Object.values(items);
     const parts = [];
-    if (holiday) parts.push(`<span class="preview-holiday">🎌 ${escHtml(holiday)}</span>`);
+    if (holiday) parts.push(`<span class="preview-holiday">${escHtml(holiday)}</span>`);
     arr.slice(0, holiday ? 1 : 2).forEach(i => parts.push(`<span class="preview-sched">${escHtml(i.title||'')}</span>`));
     return parts.join('<br>');
   }, 'onScheduleDayClick', (d) => HOLIDAYS[hKey(d)] ? 'holiday' : '');
@@ -1100,7 +1135,8 @@ function renderRecipes() {
   list.innerHTML = arr.map(([id,r]) => `
     <div class="recipe-card" onclick="openRecipeEdit('${id}')">
       <div class="recipe-title">${escHtml(r.title||'')}</div>
-      <div class="recipe-preview">${escHtml(r.content||'').replace(/\n/g,' ')}</div>
+      ${r.ingredients ? `<div class="recipe-preview" style="color:var(--mint);font-size:11px;margin-bottom:2px">🥬 ${escHtml(r.ingredients).replace(/\n/g,' ')}</div>` : ''}
+      <div class="recipe-preview">${escHtml(r.steps||r.content||'').replace(/\n/g,' ')}</div>
     </div>
   `).join('');
 }
@@ -1109,7 +1145,8 @@ function openRecipeAdd() {
   editingRecipeId = null;
   document.getElementById('recipe-modal-title').textContent = '레시피 추가';
   document.getElementById('recipe-title-input').value = '';
-  document.getElementById('recipe-content-input').value = '';
+  document.getElementById('recipe-ingredients-input').value = '';
+  document.getElementById('recipe-steps-input').value = '';
   document.getElementById('recipe-del-btn').style.display = 'none';
   openModal('recipe-overlay');
 }
@@ -1119,16 +1156,19 @@ function openRecipeEdit(id) {
   const r = (appData.recipes || {})[id] || {};
   document.getElementById('recipe-modal-title').textContent = '레시피 수정';
   document.getElementById('recipe-title-input').value = r.title || '';
-  document.getElementById('recipe-content-input').value = r.content || '';
+  // backward compat: if old recipe has 'content', show in steps
+  document.getElementById('recipe-ingredients-input').value = r.ingredients || '';
+  document.getElementById('recipe-steps-input').value = r.steps || r.content || '';
   document.getElementById('recipe-del-btn').style.display = 'inline-flex';
   openModal('recipe-overlay');
 }
 
 function saveRecipe() {
   const title = document.getElementById('recipe-title-input').value.trim();
-  const content = document.getElementById('recipe-content-input').value.trim();
+  const ingredients = document.getElementById('recipe-ingredients-input').value.trim();
+  const steps = document.getElementById('recipe-steps-input').value.trim();
   if (!title) { showToast('제목을 입력해주세요'); return; }
-  const data = { title, content, ts: Date.now() };
+  const data = { title, ingredients, steps, ts: Date.now() };
   const ref = editingRecipeId
     ? db.ref(`${room}/recipes/${editingRecipeId}`)
     : db.ref(`${room}/recipes`).push();
@@ -1176,16 +1216,19 @@ function renderSettle() {
   const boyTotal = sumMonth('boy');
   const girlTotal = sumMonth('girl');
   const sharedTotal = sumMonth('shared');
-  const coupangTotal = sumMonth('shared', '쿠팡카드');
-  const sharedOther = sharedTotal - coupangTotal;
+  const boyCoupang = sumMonth('boy', '쿠팡카드');
+  const girlCoupang = sumMonth('girl', '쿠팡카드');
+  const sharedCoupang = sumMonth('shared', '쿠팡카드');
+  const boyPersonal = boyTotal - boyCoupang;
+  const girlPersonal = girlTotal - girlCoupang;
+  const sharedOther = sharedTotal - sharedCoupang;
   const grandTotal = boyTotal + girlTotal + sharedTotal;
 
-  // Shared (including Coupang card) split 50/50
+  // Shared split 50/50
   const sharedEach = Math.round(sharedTotal / 2);
-  const coupangEach = Math.round(coupangTotal / 2);
 
-  // Net transfer based on personal expense difference + shared burden
-  const diff = boyTotal - girlTotal;
+  // Net transfer: (boy personal - girl personal) / 2 + sharedEach
+  const diff = boyPersonal - girlPersonal;
   let transferAmt = Math.round(Math.abs(diff) / 2) + sharedEach;
   let transferMsg = '';
   if (transferAmt < 100) {
@@ -1201,15 +1244,16 @@ function renderSettle() {
   document.getElementById('settle-content').innerHTML = `
     <div class="settle-card">
       <div class="settle-row"><span class="settle-label">🐭 주머니쥐 지출</span><span class="settle-val">${fmt(boyTotal)}</span></div>
+      ${boyCoupang > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 💳 주머니쥐 쿠팡카드</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(boyCoupang)}</span></div>` : ''}
       <div class="settle-row"><span class="settle-label">👧 누나양 지출</span><span class="settle-val">${fmt(girlTotal)}</span></div>
+      ${girlCoupang > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 💳 누나양 쿠팡카드</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(girlCoupang)}</span></div>` : ''}
       <div class="settle-row"><span class="settle-label">🤝 공금 지출</span><span class="settle-val">${fmt(sharedOther)}</span></div>
-      <div class="settle-row"><span class="settle-label">💳 쿠팡카드 결제</span><span class="settle-val">${fmt(coupangTotal)}</span></div>
+      ${sharedCoupang > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 💳 공금 쿠팡카드</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(sharedCoupang)}</span></div>` : ''}
       <div class="settle-row" style="font-weight:700"><span class="settle-label">합계</span><span class="settle-val">${fmt(grandTotal)}</span></div>
     </div>
     <div class="settle-card">
       <h3>공금 분담 (50:50)</h3>
       <div class="settle-row"><span class="settle-label">공금 각자 부담</span><span class="settle-val">${fmt(sharedEach)}</span></div>
-      ${coupangTotal > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray)">└ 쿠팡카드 각자 ${fmt(coupangEach)} 포함</span><span class="settle-val" style="font-size:12px;color:var(--gray)">1/2씩</span></div>` : ''}
     </div>
     <div class="settle-card">
       <h3>정산 결과</h3>
