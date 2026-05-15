@@ -157,10 +157,21 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
 .section-divider{font-size:12px;font-weight:600;color:var(--gray);margin:12px 0 8px;padding-left:4px}
 
 /* ───── Recipes ───── */
-.recipe-card{background:var(--white);border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 5px rgba(0,0,0,.06);cursor:pointer;active:opacity:.8}
-.recipe-card:active{opacity:.8}
-.recipe-title{font-size:15px;font-weight:700;margin-bottom:4px}
-.recipe-preview{font-size:12px;color:var(--gray);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.recipe-card{background:var(--white);border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 5px rgba(0,0,0,.06);cursor:pointer;display:flex;align-items:center;gap:12px}
+.recipe-card:active{opacity:.75}
+.recipe-card-emoji{font-size:28px;flex-shrink:0;width:44px;height:44px;background:var(--pink-light);border-radius:12px;display:flex;align-items:center;justify-content:center}
+.recipe-card-body{flex:1;min-width:0}
+.recipe-title{font-size:15px;font-weight:700;margin-bottom:2px}
+.recipe-subtitle{font-size:12px;color:var(--gray);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+/* Recipe view modal */
+.recipe-view-title{font-size:20px;font-weight:700;color:#333;margin-bottom:16px;line-height:1.3}
+.recipe-section{margin-bottom:20px}
+.recipe-section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);margin-bottom:8px}
+.recipe-ingredients-box{background:var(--mint-light);border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.7;white-space:pre-wrap;color:#2a6b5a}
+.recipe-steps-list{list-style:none;padding:0;margin:0}
+.recipe-steps-list li{display:flex;gap:10px;margin-bottom:10px;align-items:flex-start}
+.recipe-step-num{flex-shrink:0;width:22px;height:22px;background:var(--pink);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;margin-top:1px}
+.recipe-step-text{font-size:13px;line-height:1.6;color:#333;flex:1}
 
 /* ───── Settlement ───── */
 .settle-card{background:var(--white);border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 1px 6px rgba(0,0,0,.07)}
@@ -513,6 +524,26 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
       <button class="btn btn-danger btn-sm" id="recipe-del-btn" onclick="deleteRecipe()" style="display:none;width:auto">삭제</button>
       <button class="btn btn-gray" onclick="closeModal('recipe-overlay')">취소</button>
       <button class="btn btn-primary" onclick="saveRecipe()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Recipe View Modal -->
+<div class="overlay" id="recipe-view-overlay" onclick="overlayClickClose(event,'recipe-view-overlay')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="recipe-view-title" id="recipe-view-title"></div>
+    <div class="recipe-section" id="recipe-view-ingredients-section">
+      <div class="recipe-section-label">🥬 재료</div>
+      <div class="recipe-ingredients-box" id="recipe-view-ingredients"></div>
+    </div>
+    <div class="recipe-section" id="recipe-view-steps-section">
+      <div class="recipe-section-label">👨‍🍳 조리 순서</div>
+      <ol class="recipe-steps-list" id="recipe-view-steps"></ol>
+    </div>
+    <div class="btn-row" style="margin-top:4px">
+      <button class="btn btn-gray" onclick="closeModal('recipe-view-overlay')">닫기</button>
+      <button class="btn btn-primary" id="recipe-view-edit-btn" onclick="openRecipeEditFromView()">✏️ 수정</button>
     </div>
   </div>
 </div>
@@ -1151,13 +1182,61 @@ function renderRecipes() {
     list.innerHTML = '<div class="empty-msg">레시피가 없어요 🍳<br>+ 버튼으로 추가해보세요</div>';
     return;
   }
-  list.innerHTML = arr.map(([id,r]) => `
-    <div class="recipe-card" onclick="openRecipeEdit('${id}')">
-      <div class="recipe-title">${escHtml(r.title||'')}</div>
-      ${r.ingredients ? `<div class="recipe-preview" style="color:var(--mint);font-size:11px;margin-bottom:2px">🥬 ${escHtml(r.ingredients).replace(/\n/g,' ')}</div>` : ''}
-      <div class="recipe-preview">${escHtml(r.steps||r.content||'').replace(/\n/g,' ')}</div>
-    </div>
-  `).join('');
+  const FOOD_EMOJIS = ['🍲','🥘','🫕','🍜','🍛','🥗','🍚','🥩','🍗','🥚','🍳','🫔'];
+  list.innerHTML = arr.map(([id,r], i) => {
+    const emoji = FOOD_EMOJIS[i % FOOD_EMOJIS.length];
+    const ingPreview = (r.ingredients||'').replace(/\n/g,' ').slice(0,50);
+    const stepsCount = (r.steps||'').split('\n').filter(l=>l.trim()).length;
+    return `
+    <div class="recipe-card" onclick="openRecipeView('${id}')">
+      <div class="recipe-card-emoji">${emoji}</div>
+      <div class="recipe-card-body">
+        <div class="recipe-title">${escHtml(r.title||'')}</div>
+        <div class="recipe-subtitle">${ingPreview ? escHtml(ingPreview)+(ingPreview.length>=50?'…':'') : stepsCount+'단계'}</div>
+      </div>
+      <span style="color:#ccc;font-size:18px">›</span>
+    </div>`;
+  }).join('');
+}
+
+let viewingRecipeId = null;
+function openRecipeView(id) {
+  viewingRecipeId = id;
+  const r = (appData.recipes || {})[id] || {};
+  document.getElementById('recipe-view-title').textContent = r.title || '';
+
+  // Ingredients
+  const ingSection = document.getElementById('recipe-view-ingredients-section');
+  const ingBox = document.getElementById('recipe-view-ingredients');
+  if (r.ingredients) {
+    ingBox.textContent = r.ingredients;
+    ingSection.style.display = '';
+  } else {
+    ingSection.style.display = 'none';
+  }
+
+  // Steps — parse numbered lines
+  const stepsSection = document.getElementById('recipe-view-steps-section');
+  const stepsList = document.getElementById('recipe-view-steps');
+  const stepsRaw = r.steps || r.content || '';
+  if (stepsRaw) {
+    const lines = stepsRaw.split('\n').filter(l => l.trim());
+    stepsList.innerHTML = lines.map((line, i) => {
+      // Strip leading "N." or "N. " numbering if present
+      const text = line.replace(/^\d+\.\s*/, '').trim();
+      return `<li><span class="recipe-step-num">${i+1}</span><span class="recipe-step-text">${escHtml(text)}</span></li>`;
+    }).join('');
+    stepsSection.style.display = '';
+  } else {
+    stepsSection.style.display = 'none';
+  }
+
+  openModal('recipe-view-overlay');
+}
+
+function openRecipeEditFromView() {
+  closeModal('recipe-view-overlay');
+  if (viewingRecipeId) openRecipeEdit(viewingRecipeId);
 }
 
 function openRecipeAdd() {
@@ -1237,57 +1316,92 @@ function renderSettle() {
   const sharedTotal = sumMonth('shared');
   const boyCoupang = sumMonth('boy', '쿠팡카드');
   const girlCoupang = sumMonth('girl', '쿠팡카드');
-  const boyPublicCat = sumMonth('boy', '공금지출');   // 주머니쥐가 선결제한 공금
-  const girlPublicCat = sumMonth('girl', '공금지출');  // 땃쥐가 선결제한 공금
+  const boyPublicCat = sumMonth('boy', '공금지출');
+  const girlPublicCat = sumMonth('girl', '공금지출');
+
+  // 공금 탭 항목 분류: 월세→주머니쥐, 관리비/전기세/수도세/가스비→땃쥐, 나머지→공동
+  const BOY_SHARED_KW  = ['월세'];
+  const GIRL_SHARED_KW = ['관리비','전기세','전기요금','수도세','수도요금','가스비','가스요금'];
+  function sharedAssign() {
+    const tabData = (expenses['shared'] || {})[key] || {};
+    let boy = 0, girl = 0, common = 0;
+    Object.values(tabData).forEach(dayItems => {
+      if (typeof dayItems !== 'object') return;
+      Object.values(dayItems).forEach(item => {
+        const d = (item.desc || '').trim();
+        const amt = Number(item.amount || 0);
+        if (BOY_SHARED_KW.some(kw => d.includes(kw)))       boy    += amt;
+        else if (GIRL_SHARED_KW.some(kw => d.includes(kw))) girl   += amt;
+        else                                                  common += amt;
+      });
+    });
+    return { boy, girl, common };
+  }
+  const sa = sharedAssign();
+  // 개인 선결제 공금은 50:50 공동 처리
+  const totalCommon = sa.common + boyPublicCat + girlPublicCat;
+  const commonEach  = Math.round(totalCommon / 2);
+
+  // 주머니쥐 공금 총부담 = 월세(전액) + 공동/2 + 개인선결제(이미 지불, 절반 환급 대기)
+  // 땃쥐 공금 총부담 = 관리비등(전액) + 공동/2
+  // 공금 탭은 공금 계좌에서 지출, 개인 선결제는 이미 개인이 지출
 
   // 개인 순수 지출 (쿠팡이츠·공금선결제 제외)
-  const boyPersonal = boyTotal - boyCoupang - boyPublicCat;
+  const boyPersonal  = boyTotal  - boyCoupang  - boyPublicCat;
   const girlPersonal = girlTotal - girlCoupang - girlPublicCat;
 
-  // 총 공금 (공금탭 + 개인 선결제)
-  const totalShared = sharedTotal + boyPublicCat + girlPublicCat;
-  const sharedEach = Math.round(totalShared / 2);
+  // 최종 정산: 각자가 부담해야 할 총액 vs 실제 지출
+  // 주머니쥐 부담총액 = boyPersonal + sa.boy + commonEach + boyPublicCat(이미냄)
+  //   → 추가 납부 = sa.boy + commonEach - boyPublicCat
+  //   (음수면 환급 = boyPublicCat 초과분)
+  // 땃쥐 부담총액 = girlPersonal + sa.girl + commonEach + girlPublicCat(이미냄)
+  //   → 추가 납부 = sa.girl + commonEach - girlPublicCat
 
-  // 개인 지출 차액
+  // 개인 차액
   const diff = boyPersonal - girlPersonal;
   const personalTransfer = Math.round(Math.abs(diff) / 2);
-  let personalMsg = '';
-  if (personalTransfer < 100) personalMsg = '개인 지출 균등 👏';
-  else if (diff > 0) personalMsg = `땃쥐 → 주머니쥐 ${fmt(personalTransfer)}`;
-  else personalMsg = `주머니쥐 → 땃쥐 ${fmt(personalTransfer)}`;
+  let personalDir = '';
+  if (personalTransfer >= 100) personalDir = diff > 0 ? '땃쥐 → 주머니쥐' : '주머니쥐 → 땃쥐';
 
-  // 공금 분담 (개인 선결제 차감 후 추가 납부)
-  const boySharedDue = sharedEach - boyPublicCat;
-  const girlSharedDue = sharedEach - girlPublicCat;
-
-  // 쿠팡이츠 이체 (땃쥐→주머니쥐KB, 다음달10일)
-  // 주머니쥐는 이미 본인KB이므로 별도이체 없음
+  // 공금 추가납부 (공금 계좌에)
+  const boySharedExtra  = sa.boy  + commonEach - boyPublicCat;
+  const girlSharedExtra = sa.girl + commonEach - girlPublicCat;
 
   const settled = settlementData.settled || false;
+
+  function sharedExtraRow(who, amt) {
+    if (amt === 0) return `<div class="settle-row"><span class="settle-label" style="font-size:12px">└ ${who} 추가납부</span><span class="settle-val" style="font-size:13px;color:var(--mint)">없음</span></div>`;
+    if (amt > 0)   return `<div class="settle-row"><span class="settle-label" style="font-size:12px">└ ${who} 추가납부</span><span class="settle-val" style="font-size:13px">${fmt(amt)}</span></div>`;
+    return `<div class="settle-row"><span class="settle-label" style="font-size:12px">└ ${who} 환급</span><span class="settle-val" style="font-size:13px;color:var(--blue)">${fmt(-amt)}</span></div>`;
+  }
 
   document.getElementById('settle-content').innerHTML = `
   <div class="settle-card">
     <h3>지출 내역</h3>
     <div class="settle-row"><span class="settle-label">🐭 주머니쥐</span><span class="settle-val">${fmt(boyTotal)}</span></div>
-    ${boyCoupang > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 💳 쿠팡이츠</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(boyCoupang)}</span></div>` : ''}
-    ${boyPublicCat > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 🤝 공금 선결제</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(boyPublicCat)}</span></div>` : ''}
+    ${boyCoupang  > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 💳 쿠팡이츠</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(boyCoupang)}</span></div>` : ''}
+    ${boyPublicCat> 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 🤝 공금 선결제</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(boyPublicCat)}</span></div>` : ''}
     <div class="settle-row"><span class="settle-label">🐱 땃쥐</span><span class="settle-val">${fmt(girlTotal)}</span></div>
-    ${girlCoupang > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 💳 쿠팡이츠</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(girlCoupang)}</span></div>` : ''}
-    ${girlPublicCat > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 🤝 공금 선결제</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(girlPublicCat)}</span></div>` : ''}
+    ${girlCoupang  > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 💳 쿠팡이츠</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(girlCoupang)}</span></div>` : ''}
+    ${girlPublicCat> 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 🤝 공금 선결제</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(girlPublicCat)}</span></div>` : ''}
     <div class="settle-row"><span class="settle-label">🤝 공금 탭</span><span class="settle-val">${fmt(sharedTotal)}</span></div>
+    ${sa.boy  > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 🏠 월세 (주머니쥐 담당)</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(sa.boy)}</span></div>` : ''}
+    ${sa.girl > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 💡 관리비·공과금 (땃쥐 담당)</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(sa.girl)}</span></div>` : ''}
+    ${sa.common>0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 공동 (50:50)</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(sa.common)}</span></div>` : ''}
   </div>
   <div class="settle-card">
-    <h3>공금 분담 (50:50)</h3>
-    <div class="settle-row"><span class="settle-label">총 공금</span><span class="settle-val">${fmt(totalShared)}</span></div>
-    <div class="settle-row"><span class="settle-label">각자 부담액</span><span class="settle-val">${fmt(sharedEach)}</span></div>
-    <div class="settle-row"><span class="settle-label" style="font-size:12px">└ 주머니쥐 추가납부</span><span class="settle-val" style="font-size:13px">${boySharedDue > 0 ? fmt(boySharedDue) : '환급 ' + fmt(-boySharedDue)}</span></div>
-    <div class="settle-row"><span class="settle-label" style="font-size:12px">└ 땃쥐 추가납부</span><span class="settle-val" style="font-size:13px">${girlSharedDue > 0 ? fmt(girlSharedDue) : '환급 ' + fmt(-girlSharedDue)}</span></div>
+    <h3>🏠 공금 분담</h3>
+    ${sa.boy  > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px">월세 → 주머니쥐</span><span class="settle-val">${fmt(sa.boy)}</span></div>` : ''}
+    ${sa.girl > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px">관리비·공과금 → 땃쥐</span><span class="settle-val">${fmt(sa.girl)}</span></div>` : ''}
+    ${totalCommon > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px">공동지출 각자 부담</span><span class="settle-val">${fmt(commonEach)}</span></div>` : ''}
+    ${sharedExtraRow('🐭 주머니쥐', boySharedExtra)}
+    ${sharedExtraRow('🐱 땃쥐',    girlSharedExtra)}
   </div>
   ${(boyCoupang > 0 || girlCoupang > 0) ? `
   <div class="settle-card">
-    <h3>💳 쿠팡이츠 이체 (다음달 10일까지)</h3>
-    <div class="settle-row" style="font-size:13px;color:var(--gray)"><span>주머니쥐 KB국민은행 계좌로</span></div>
-    ${boyCoupang > 0 ? `<div class="settle-row"><span class="settle-label">🐭 주머니쥐 납부</span><span class="settle-val">${fmt(boyCoupang)}</span></div>` : ''}
+    <h3>💳 쿠팡이츠 이체 (다음달 10일)</h3>
+    <div class="settle-row" style="font-size:12px;color:var(--gray)"><span>→ 주머니쥐 KB국민은행 계좌</span></div>
+    ${boyCoupang  > 0 ? `<div class="settle-row"><span class="settle-label">🐭 주머니쥐 납부</span><span class="settle-val">${fmt(boyCoupang)}</span></div>` : ''}
     ${girlCoupang > 0 ? `<div class="settle-row"><span class="settle-label">🐱 땃쥐 납부</span><span class="settle-val">${fmt(girlCoupang)}</span></div>` : ''}
   </div>` : ''}
   <div class="settle-card">
@@ -1295,7 +1409,7 @@ function renderSettle() {
     <div class="settle-row"><span class="settle-label">주머니쥐 개인</span><span class="settle-val">${fmt(boyPersonal)}</span></div>
     <div class="settle-row"><span class="settle-label">땃쥐 개인</span><span class="settle-val">${fmt(girlPersonal)}</span></div>
     <div class="settle-result">
-      <div class="result-text">${personalMsg}</div>
+      <div class="result-text">${personalTransfer < 100 ? '개인 지출 균등 👏' : `${personalDir}\n${fmt(personalTransfer)}`}</div>
     </div>
   </div>
   <div class="settle-done-btn">
