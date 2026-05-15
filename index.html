@@ -621,6 +621,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
         <div class="sub-tab" id="coupang-done-girl" onclick="selectCoupangDoneWho('girl')">🐱 땃쥐</div>
       </div>
     </div>
+    <div class="form-group" style="margin-top:14px">
+      <label>결제 금액</label>
+      <input type="number" id="coupang-done-amount" placeholder="0" inputmode="numeric" style="width:100%;padding:10px 12px;border:1.5px solid #e8e8e8;border-radius:12px;font-size:16px;font-family:inherit">
+    </div>
     <div class="btn-row" style="margin-top:16px">
       <button class="btn btn-gray" onclick="closeModal('coupang-done-overlay')">취소</button>
       <button class="btn btn-primary" onclick="saveCoupangDone()">저장</button>
@@ -1066,7 +1070,7 @@ function openExpenseDayModal(d) {
   if (doneArr.length) {
     doneSection.innerHTML = `<div style="font-size:12px;color:var(--gray);margin-bottom:4px">💳 쿠팡 정산완료</div>` +
       doneArr.map(([id, r]) =>
-        `<div class="coupang-done-item">${r.who === 'boy' ? '🐭 주머니쥐' : '🐱 땃쥐'}<button class="coupang-done-del" onclick="deleteCoupangDone('${dayStr}','${id}')">✕</button></div>`
+        `<div class="coupang-done-item">${r.who === 'boy' ? '🐭 주머니쥐' : '🐱 땃쥐'}${r.amount ? `<span style="margin-left:auto;font-weight:700;color:var(--blue);margin-right:4px">${fmt(r.amount)}</span>` : ''}<button class="coupang-done-del" onclick="deleteCoupangDone('${dayStr}','${id}')">✕</button></div>`
       ).join('');
   } else {
     doneSection.innerHTML = '';
@@ -1503,6 +1507,24 @@ function renderSettle() {
   const boyPublicCat  = sumPeriod('boy',  '공금지출');
   const girlPublicCat = sumPeriod('girl', '공금지출');
 
+  // Coupang done amounts in period
+  const coupangDoneData = appData.coupang_done || {};
+  let boyCoupang = 0, girlCoupang = 0;
+  [[prevYear, prevMonth], [settleYear, settleMonth]].forEach(([y, m]) => {
+    const monthData = coupangDoneData[ym(y, m)] || {};
+    Object.entries(monthData).forEach(([dayStr, dayItems]) => {
+      if (typeof dayItems !== 'object') return;
+      const ds = `${y}-${String(m).padStart(2,'0')}-${String(parseInt(dayStr)).padStart(2,'0')}`;
+      if (ds >= fromStr && ds <= toStr) {
+        Object.values(dayItems).forEach(r => {
+          const amt = Number(r.amount || 0);
+          if (r.who === 'boy') boyCoupang += amt;
+          else girlCoupang += amt;
+        });
+      }
+    });
+  });
+
   const BOY_SHARED_KW  = ['월세'];
   const GIRL_SHARED_KW = ['관리비','전기세','전기요금','수도세','수도요금','가스비','가스요금'];
   let saboy = 0, sagirl = 0, sacommon = 0;
@@ -1544,6 +1566,12 @@ function renderSettle() {
     ${sagirl  > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 💡 관리비·공과금 (땃쥐 담당)</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(sagirl)}</span></div>` : ''}
     ${sacommon> 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 공동 (50:50)</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(sacommon)}</span></div>` : ''}
   </div>
+  ${(boyCoupang > 0 || girlCoupang > 0) ? `
+  <div class="settle-card">
+    <h3>💳 쿠팡카드 결제</h3>
+    ${boyCoupang > 0 ? `<div class="settle-row"><span class="settle-label">🐭 주머니쥐 결제</span><span class="settle-val">${fmt(boyCoupang)}</span></div>` : ''}
+    ${girlCoupang > 0 ? `<div class="settle-row"><span class="settle-label">🐱 땃쥐 결제</span><span class="settle-val">${fmt(girlCoupang)}</span></div>` : ''}
+  </div>` : ''}
   <div class="settle-card">
     <h3>🏠 공금 분담</h3>
     ${sharedPayRow('🐭 주머니쥐', boySharedExtra)}
@@ -1562,6 +1590,8 @@ function renderSettle() {
       ? `<div class="settle-row"><span class="settle-label" style="font-size:13px">${personalDir}</span><span class="settle-val">${fmt(personalTransfer)}</span></div>`
       : `<div class="settle-row"><span class="settle-label" style="font-size:13px;color:var(--mint)">개인 지출 균등 👏</span><span class="settle-val"></span></div>`
     }
+    ${boyCoupang > 0 ? `<div class="settle-row" style="border-top:1px solid #f0f0f0;margin-top:4px;padding-top:8px"><span class="settle-label" style="font-size:13px">🐭 쿠팡카드 결제</span><span class="settle-val" style="color:var(--blue)">${fmt(boyCoupang)}</span></div>` : ''}
+    ${girlCoupang > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px">🐱 쿠팡카드 결제</span><span class="settle-val" style="color:var(--blue)">${fmt(girlCoupang)}</span></div>` : ''}
   </div>
   <div class="settle-done-btn">
     ${settled
@@ -1635,6 +1665,7 @@ function openCoupangDoneModal() {
   coupangDoneWho = 'boy';
   document.getElementById('coupang-done-boy').classList.add('active');
   document.getElementById('coupang-done-girl').classList.remove('active');
+  document.getElementById('coupang-done-amount').value = '';
   openModal('coupang-done-overlay');
 }
 
@@ -1645,9 +1676,11 @@ function selectCoupangDoneWho(who) {
 }
 
 function saveCoupangDone() {
+  const amount = parseInt(document.getElementById('coupang-done-amount').value) || 0;
+  if (!amount) { showToast('결제 금액을 입력해주세요'); return; }
   const dayStr = String(selectedDay).padStart(2,'0');
   const key = ym(expenseYear, expenseMonth);
-  db.ref(`${room}/coupang_done/${key}/${dayStr}`).push({ who: coupangDoneWho, ts: Date.now() })
+  db.ref(`${room}/coupang_done/${key}/${dayStr}`).push({ who: coupangDoneWho, amount, ts: Date.now() })
     .then(() => {
       closeModal('coupang-done-overlay');
       showToast('정산완료 표시됐어요 💳');
