@@ -184,8 +184,20 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
 .settle-card{background:var(--white);border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 1px 6px rgba(0,0,0,.07)}
 .settle-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f5f5f5}
 .settle-row:last-child{border-bottom:none}
+.settle-row.tappable{cursor:pointer;transition:.12s}
+.settle-row.tappable:active{background:var(--pink-light);border-radius:8px}
+.settle-row.tappable .settle-val::after{content:' ›';color:var(--gray);font-weight:400;font-size:13px}
 .settle-label{font-size:14px;color:#444}
 .settle-val{font-size:15px;font-weight:700}
+.sd-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f5f5f5;font-size:13px}
+.sd-item:last-child{border-bottom:none}
+.sd-date{min-width:36px;color:var(--gray);font-size:12px}
+.sd-cat{font-size:16px;flex-shrink:0}
+.sd-desc{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.sd-amt{font-weight:700;white-space:nowrap;flex-shrink:0}
+.sd-formula-row{display:flex;justify-content:space-between;padding:5px 0;font-size:13px;border-bottom:1px solid #f5f5f5}
+.sd-formula-row:last-child{border-bottom:none}
+.sd-formula-row.total{font-weight:700;font-size:15px;padding-top:8px;margin-top:4px;border-top:2px solid #e8e8e8;border-bottom:none}
 .settle-result{background:var(--pink-light);border-radius:12px;padding:14px;margin-top:8px;text-align:center}
 .settle-result .result-text{font-size:15px;font-weight:700;color:var(--pink);line-height:1.6}
 .settle-done-btn{margin-top:10px}
@@ -632,6 +644,18 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
   </div>
 </div>
 
+<!-- Settle Detail -->
+<div class="overlay" id="settle-detail-overlay" onclick="overlayClickClose(event,'settle-detail-overlay')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h2 id="settle-detail-title"></h2>
+    <div id="settle-detail-body" style="max-height:58vh;overflow-y:auto;margin-top:10px"></div>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn btn-gray" onclick="closeModal('settle-detail-overlay')">닫기</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
@@ -716,6 +740,7 @@ let editingExpenseId = null;
 let editingExpenseDayStr = null;
 let schedWho = '';
 let coupangDoneWho = 'boy';
+let settleCache = null;
 
 // ══════════════════════════════════════════════
 //  Init
@@ -1484,32 +1509,32 @@ function renderSettle() {
   const fromStr = `${prevYear}-${String(prevMonth).padStart(2,'0')}-10`;
   const toStr   = `${settleYear}-${String(settleMonth).padStart(2,'0')}-10`;
 
-  function iterPeriod(tab, cb) {
+  // Collect items WITH date for drill-down
+  function collectPeriod(tab) {
+    const arr = [];
     [[prevYear, prevMonth], [settleYear, settleMonth]].forEach(([y, m]) => {
       const monthData = (expenses[tab] || {})[ym(y, m)] || {};
       Object.entries(monthData).forEach(([dayStr, dayItems]) => {
         if (typeof dayItems !== 'object') return;
         const ds = `${y}-${String(m).padStart(2,'0')}-${String(parseInt(dayStr)).padStart(2,'0')}`;
-        if (ds >= fromStr && ds <= toStr) Object.values(dayItems).forEach(cb);
+        if (ds >= fromStr && ds <= toStr) Object.values(dayItems).forEach(item => arr.push({...item, date: ds}));
       });
     });
+    return arr;
   }
 
-  function sumPeriod(tab, catFilter) {
-    let total = 0;
-    iterPeriod(tab, item => { if (!catFilter || item.cat === catFilter) total += Number(item.amount||0); });
-    return total;
-  }
+  const boyItems    = collectPeriod('boy');
+  const girlItems   = collectPeriod('girl');
+  const sharedItems = collectPeriod('shared');
 
-  const boyTotal      = sumPeriod('boy');
-  const girlTotal     = sumPeriod('girl');
-  const sharedTotal   = sumPeriod('shared');
-  const boyPublicCat  = sumPeriod('boy',  '공금지출');
-  const girlPublicCat = sumPeriod('girl', '공금지출');
+  const boyTotal  = boyItems.reduce((s, i) => s + Number(i.amount||0), 0);
+  const girlTotal = girlItems.reduce((s, i) => s + Number(i.amount||0), 0);
+  const sharedTotal = sharedItems.reduce((s, i) => s + Number(i.amount||0), 0);
 
   // Coupang done amounts in period
   const coupangDoneData = appData.coupang_done || {};
   let boyCoupang = 0, girlCoupang = 0;
+  const boyCoupangItems = [], girlCoupangItems = [];
   [[prevYear, prevMonth], [settleYear, settleMonth]].forEach(([y, m]) => {
     const monthData = coupangDoneData[ym(y, m)] || {};
     Object.entries(monthData).forEach(([dayStr, dayItems]) => {
@@ -1518,38 +1543,81 @@ function renderSettle() {
       if (ds >= fromStr && ds <= toStr) {
         Object.values(dayItems).forEach(r => {
           const amt = Number(r.amount || 0);
-          if (r.who === 'boy') boyCoupang += amt;
-          else girlCoupang += amt;
+          if (r.who === 'boy') { boyCoupang += amt; boyCoupangItems.push({...r, date: ds}); }
+          else { girlCoupang += amt; girlCoupangItems.push({...r, date: ds}); }
         });
       }
     });
   });
 
   const BOY_SHARED_KW  = ['월세'];
-  const GIRL_SHARED_KW = ['관리비','전기세','전기요금','수도세','수도요금','가스비','가스요금'];
-  let saboy = 0, sagirl = 0, sacommon = 0;
-  iterPeriod('shared', item => {
-    const d = (item.desc || '').trim();
-    const amt = Number(item.amount || 0);
-    if      (BOY_SHARED_KW.some(kw => d.includes(kw)))  saboy    += amt;
-    else if (GIRL_SHARED_KW.some(kw => d.includes(kw))) sagirl   += amt;
-    else                                                  sacommon += amt;
-  });
+  const GIRL_SHARED_KW = ['관리비','전기세','전기요금','수도세','수도요금','가스비','가스요금','도시가스','한전'];
 
-  const totalCommon    = sacommon + boyPublicCat + girlPublicCat;
-  const commonEach     = Math.round(totalCommon / 2);
-  const boyPersonal    = boyTotal  - boyPublicCat;
-  const girlPersonal   = girlTotal - girlPublicCat;
+  // Classify shared tab items
+  const saboyItems = [], sagirlItems = [], sacommonItems = [];
+  sharedItems.forEach(item => {
+    const d = (item.desc || '').trim();
+    if      (BOY_SHARED_KW.some(kw => d.includes(kw)))  saboyItems.push(item);
+    else if (GIRL_SHARED_KW.some(kw => d.includes(kw))) sagirlItems.push(item);
+    else                                                  sacommonItems.push(item);
+  });
+  const saboy   = saboyItems.reduce((s,i) => s + Number(i.amount||0), 0);
+  const sagirl  = sagirlItems.reduce((s,i) => s + Number(i.amount||0), 0);
+  const sacommon = sacommonItems.reduce((s,i) => s + Number(i.amount||0), 0);
+
+  // Boy's 공금지출 — split into common vs girl-attributed
+  const boyPublicItems = boyItems.filter(i => i.cat === '공금지출');
+  const boyPublicGirlItems = boyPublicItems.filter(i => GIRL_SHARED_KW.some(kw => (i.desc||'').includes(kw)));
+  const boyPublicCommonItems = boyPublicItems.filter(i => !GIRL_SHARED_KW.some(kw => (i.desc||'').includes(kw)));
+  const boyPublicCat       = boyPublicItems.reduce((s,i) => s + Number(i.amount||0), 0);
+  const boyPublicCatGirl   = boyPublicGirlItems.reduce((s,i) => s + Number(i.amount||0), 0);
+  const boyPublicCatCommon = boyPublicCommonItems.reduce((s,i) => s + Number(i.amount||0), 0);
+
+  // Girl's 공금지출 — split into common vs boy-attributed
+  const girlPublicItems = girlItems.filter(i => i.cat === '공금지출');
+  const girlPublicBoyItems = girlPublicItems.filter(i => BOY_SHARED_KW.some(kw => (i.desc||'').includes(kw)));
+  const girlPublicCommonItems = girlPublicItems.filter(i => !BOY_SHARED_KW.some(kw => (i.desc||'').includes(kw)));
+  const girlPublicCat      = girlPublicItems.reduce((s,i) => s + Number(i.amount||0), 0);
+  const girlPublicCatBoy   = girlPublicBoyItems.reduce((s,i) => s + Number(i.amount||0), 0);
+  const girlPublicCatCommon = girlPublicCommonItems.reduce((s,i) => s + Number(i.amount||0), 0);
+
+  // If boy fronted girl's utilities via 공금지출, those go to girl's responsibility
+  const sagirl2 = sagirl + boyPublicCatGirl;   // utilities girl owes (shared tab + boy's 공금지출 for utilities)
+  const saboy2  = saboy  + girlPublicCatBoy;   // boy's responsibility fronted by girl
+
+  const totalCommon = sacommon + boyPublicCatCommon + girlPublicCatCommon;
+  const commonEach  = Math.round(totalCommon / 2);
+  const boyPersonal  = boyTotal  - boyPublicCat;
+  const girlPersonal = girlTotal - girlPublicCat;
   const diff           = boyPersonal - girlPersonal;
   const personalTransfer = Math.round(Math.abs(diff) / 2);
   const personalDir    = diff > 0 ? '땃쥐 → 주머니쥐' : '주머니쥐 → 땃쥐';
-  const boySharedExtra  = saboy   + commonEach - boyPublicCat;
-  const girlSharedExtra = sagirl  + commonEach - girlPublicCat;
+  const boySharedExtra  = saboy2  + commonEach - boyPublicCat;
+  const girlSharedExtra = sagirl2 + commonEach - girlPublicCat;
   const settled = settlementData.settled || false;
 
-  function sharedPayRow(who, amt) {
-    if (amt > 0) return `<div class="settle-row"><span class="settle-label">${who} 납부</span><span class="settle-val">${fmt(amt)}</span></div>`;
-    if (amt < 0) return `<div class="settle-row"><span class="settle-label">${who} 환급</span><span class="settle-val" style="color:var(--blue)">${fmt(-amt)}</span></div>`;
+  // Cache for drill-down
+  settleCache = {
+    boyItems, girlItems, sharedItems,
+    saboyItems: [...saboyItems, ...girlPublicBoyItems],
+    sagirlItems: [...sagirlItems, ...boyPublicGirlItems],
+    sacommonItems,
+    boyPublicItems, girlPublicItems,
+    boyPublicGirlItems, boyPublicCommonItems,
+    girlPublicBoyItems, girlPublicCommonItems,
+    boyCoupangItems, girlCoupangItems,
+    saboy: saboy2, sagirl: sagirl2, sacommon, totalCommon, commonEach,
+    boyPublicCat, girlPublicCat, boyPublicCatGirl, girlPublicCatBoy,
+    boySharedExtra, girlSharedExtra, boyPersonal, girlPersonal,
+    personalTransfer, personalDir, boyCoupang, girlCoupang
+  };
+
+  function tappable(type) { return `class="settle-row tappable" onclick="openSettleDetail('${type}')" `; }
+
+  function sharedPayRow(who, amt, type) {
+    const cls = `class="settle-row tappable" onclick="openSettleDetail('${type}')" `;
+    if (amt > 0) return `<div ${cls}><span class="settle-label">${who} 납부</span><span class="settle-val">${fmt(amt)}</span></div>`;
+    if (amt < 0) return `<div ${cls}><span class="settle-label">${who} 환급</span><span class="settle-val" style="color:var(--blue)">${fmt(-amt)}</span></div>`;
     return `<div class="settle-row"><span class="settle-label">${who} 납부</span><span class="settle-val" style="color:var(--mint)">없음</span></div>`;
   }
 
@@ -1557,30 +1625,30 @@ function renderSettle() {
   <div style="font-size:12px;color:var(--gray);text-align:center;margin-bottom:8px">📅 정산 기간: ${prevMonth}.10 ~ ${settleMonth}.10</div>
   <div class="settle-card">
     <h3>지출 내역</h3>
-    <div class="settle-row"><span class="settle-label">🐭 주머니쥐</span><span class="settle-val">${fmt(boyTotal)}</span></div>
-    ${boyPublicCat > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 🤝 공금 선결제</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(boyPublicCat)}</span></div>` : ''}
-    <div class="settle-row"><span class="settle-label">🐱 땃쥐</span><span class="settle-val">${fmt(girlTotal)}</span></div>
-    ${girlPublicCat > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 🤝 공금 선결제</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(girlPublicCat)}</span></div>` : ''}
-    <div class="settle-row"><span class="settle-label">🤝 공금 탭</span><span class="settle-val">${fmt(sharedTotal)}</span></div>
-    ${saboy   > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 🏠 월세 (주머니쥐 담당)</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(saboy)}</span></div>` : ''}
-    ${sagirl  > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 💡 관리비·공과금 (땃쥐 담당)</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(sagirl)}</span></div>` : ''}
-    ${sacommon> 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 공동 (50:50)</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(sacommon)}</span></div>` : ''}
+    <div ${tappable('boy-total')}><span class="settle-label">🐭 주머니쥐</span><span class="settle-val">${fmt(boyTotal)}</span></div>
+    ${boyPublicCat > 0 ? `<div ${tappable('boy-public')}><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 🤝 공금 선결제</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(boyPublicCat)}</span></div>` : ''}
+    <div ${tappable('girl-total')}><span class="settle-label">🐱 땃쥐</span><span class="settle-val">${fmt(girlTotal)}</span></div>
+    ${girlPublicCat > 0 ? `<div ${tappable('girl-public')}><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 🤝 공금 선결제</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(girlPublicCat)}</span></div>` : ''}
+    <div ${tappable('shared-total')}><span class="settle-label">🤝 공금 탭</span><span class="settle-val">${fmt(sharedTotal)}</span></div>
+    ${saboy2  > 0 ? `<div ${tappable('saboy')}><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 🏠 월세 (주머니쥐 담당)</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(saboy2)}</span></div>` : ''}
+    ${sagirl2 > 0 ? `<div ${tappable('sagirl')}><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 💡 관리비·공과금 (땃쥐 담당)</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(sagirl2)}</span></div>` : ''}
+    ${sacommon > 0 ? `<div ${tappable('sacommon')}><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 공동 (50:50)</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(sacommon)}</span></div>` : ''}
   </div>
   ${(boyCoupang > 0 || girlCoupang > 0) ? `
   <div class="settle-card">
     <h3>💳 쿠팡카드 결제</h3>
-    ${boyCoupang > 0 ? `<div class="settle-row"><span class="settle-label">🐭 주머니쥐 결제</span><span class="settle-val">${fmt(boyCoupang)}</span></div>` : ''}
-    ${girlCoupang > 0 ? `<div class="settle-row"><span class="settle-label">🐱 땃쥐 결제</span><span class="settle-val">${fmt(girlCoupang)}</span></div>` : ''}
+    ${boyCoupang > 0 ? `<div ${tappable('boy-coupang')}><span class="settle-label">🐭 주머니쥐 결제</span><span class="settle-val">${fmt(boyCoupang)}</span></div>` : ''}
+    ${girlCoupang > 0 ? `<div ${tappable('girl-coupang')}><span class="settle-label">🐱 땃쥐 결제</span><span class="settle-val">${fmt(girlCoupang)}</span></div>` : ''}
   </div>` : ''}
   <div class="settle-card">
     <h3>🏠 공금 분담</h3>
-    ${sharedPayRow('🐭 주머니쥐', boySharedExtra)}
-    ${sharedPayRow('🐱 땃쥐',    girlSharedExtra)}
+    ${sharedPayRow('🐭 주머니쥐', boySharedExtra, 'boy-shared-formula')}
+    ${sharedPayRow('🐱 땃쥐',    girlSharedExtra, 'girl-shared-formula')}
   </div>
   <div class="settle-card">
     <h3>🧮 개인 지출 정산 <span style="font-size:11px;color:var(--gray);font-weight:400">(공금 제외 순수 지출)</span></h3>
-    <div class="settle-row"><span class="settle-label">주머니쥐 개인</span><span class="settle-val">${fmt(boyPersonal)}</span></div>
-    <div class="settle-row"><span class="settle-label">땃쥐 개인</span><span class="settle-val">${fmt(girlPersonal)}</span></div>
+    <div ${tappable('boy-personal')}><span class="settle-label">주머니쥐 개인</span><span class="settle-val">${fmt(boyPersonal)}</span></div>
+    <div ${tappable('girl-personal')}><span class="settle-label">땃쥐 개인</span><span class="settle-val">${fmt(girlPersonal)}</span></div>
   </div>
   <div class="settle-card">
     <h3>📋 당월 정산 기록</h3>
@@ -1601,6 +1669,121 @@ function renderSettle() {
     }
   </div>
 `;
+}
+
+function openSettleDetail(type) {
+  if (!settleCache) return;
+  const c = settleCache;
+  const fmtDate = d => d ? d.slice(5).replace('-','/') : '';
+
+  function itemRows(arr, emptyMsg) {
+    if (!arr || !arr.length) return `<div style="color:var(--gray);font-size:13px;padding:8px 0">${emptyMsg || '내역 없음'}</div>`;
+    const sorted = [...arr].sort((a,b) => (a.date||'') < (b.date||'') ? -1 : 1);
+    return sorted.map(i => `
+      <div class="sd-item">
+        <span class="sd-date">${fmtDate(i.date)}</span>
+        <span class="sd-cat">${CAT_ICONS[i.cat] || '📦'}</span>
+        <span class="sd-desc">${escHtml(i.desc || '')}</span>
+        <span class="sd-amt">${fmt(Number(i.amount||0))}</span>
+      </div>`).join('') +
+      `<div class="sd-formula-row total"><span>합계</span><span>${fmt(arr.reduce((s,i)=>s+Number(i.amount||0),0))}</span></div>`;
+  }
+
+  function formulaRows(rows, total) {
+    return rows.map(([label, amt, color]) =>
+      `<div class="sd-formula-row"><span style="color:${color||'#444'}">${label}</span><span style="color:${color||'#444'}">${amt >= 0 ? '+' : ''}${fmt(amt)}</span></div>`
+    ).join('') +
+    `<div class="sd-formula-row total"><span>= 납부 금액</span><span>${fmt(total)}</span></div>`;
+  }
+
+  let title = '', body = '';
+
+  switch(type) {
+    case 'boy-total':
+      title = '🐭 주머니쥐 지출 내역';
+      body = itemRows(c.boyItems);
+      break;
+    case 'girl-total':
+      title = '🐱 땃쥐 지출 내역';
+      body = itemRows(c.girlItems);
+      break;
+    case 'boy-public':
+      title = '🐭 주머니쥐 공금 선결제';
+      body = itemRows(c.boyPublicItems);
+      if (c.boyPublicGirlItems.length) {
+        body += `<div style="margin-top:10px;padding:8px 10px;background:var(--pink-light);border-radius:10px;font-size:12px;color:var(--pink)">💡 이 중 <b>${fmt(c.boyPublicGirlItems.reduce((s,i)=>s+Number(i.amount||0),0))}</b>는 땃쥐 부담 항목(전기세/가스비 등)으로 땃쥐의 공금 분담에 포함됩니다.</div>`;
+      }
+      break;
+    case 'girl-public':
+      title = '🐱 땃쥐 공금 선결제';
+      body = itemRows(c.girlPublicItems);
+      break;
+    case 'shared-total':
+      title = '🤝 공금 탭 전체 내역';
+      body = itemRows(c.sharedItems);
+      break;
+    case 'saboy':
+      title = '🏠 주머니쥐 담당 항목';
+      body = `<div style="font-size:12px;color:var(--gray);margin-bottom:8px">공금 탭의 월세 항목 + 땃쥐가 선결제한 월세</div>` + itemRows(c.saboyItems);
+      break;
+    case 'sagirl':
+      title = '💡 땃쥐 담당 항목';
+      body = `<div style="font-size:12px;color:var(--gray);margin-bottom:8px">공금 탭의 관리비·공과금 + 주머니쥐가 선결제한 유틸리티</div>` + itemRows(c.sagirlItems);
+      break;
+    case 'sacommon':
+      title = '🤝 공동 지출 (50:50)';
+      body = itemRows(c.sacommonItems);
+      break;
+    case 'boy-personal':
+      title = '🐭 주머니쥐 개인 지출';
+      body = itemRows(c.boyItems.filter(i => i.cat !== '공금지출'));
+      break;
+    case 'girl-personal':
+      title = '🐱 땃쥐 개인 지출';
+      body = itemRows(c.girlItems.filter(i => i.cat !== '공금지출'));
+      break;
+    case 'boy-shared-formula':
+      title = '🐭 주머니쥐 공금 분담 계산';
+      body = formulaRows([
+        ['🏠 월세 등 (주머니쥐 담당)', c.saboy, '#444'],
+        [`🤝 공동지출 절반 (${fmt(c.totalCommon)}의 1/2)`, c.commonEach, '#444'],
+        ['- 공금 선결제 (이미 냄)', -c.boyPublicCat, 'var(--blue)'],
+      ], c.boySharedExtra);
+      if (c.boyPublicGirlItems && c.boyPublicGirlItems.length) {
+        body += `<div style="margin-top:10px;padding:8px 10px;background:var(--pink-light);border-radius:10px;font-size:12px;color:var(--pink)">💡 주머니쥐가 선결제한 땃쥐 부담 항목(${fmt(c.boyPublicCatGirl)})은 땃쥐의 분담액에 반영됩니다.</div>`;
+      }
+      break;
+    case 'girl-shared-formula':
+      title = '🐱 땃쥐 공금 분담 계산';
+      body = formulaRows([
+        ['💡 관리비·공과금 (땃쥐 담당)', c.sagirl, '#444'],
+        [`🤝 공동지출 절반 (${fmt(c.totalCommon)}의 1/2)`, c.commonEach, '#444'],
+        ['- 공금 선결제 (이미 냄)', -c.girlPublicCat, 'var(--blue)'],
+      ], c.girlSharedExtra);
+      break;
+    case 'boy-coupang':
+      title = '🐭 주머니쥐 쿠팡카드 결제';
+      body = c.boyCoupangItems.length
+        ? c.boyCoupangItems.sort((a,b)=>a.date<b.date?-1:1).map(r =>
+            `<div class="sd-item"><span class="sd-date">${fmtDate(r.date)}</span><span class="sd-cat">💳</span><span class="sd-desc">쿠팡카드 결제</span><span class="sd-amt">${fmt(r.amount||0)}</span></div>`
+          ).join('') + `<div class="sd-formula-row total"><span>합계</span><span>${fmt(c.boyCoupang)}</span></div>`
+        : '<div style="color:var(--gray);font-size:13px;padding:8px 0">내역 없음</div>';
+      break;
+    case 'girl-coupang':
+      title = '🐱 땃쥐 쿠팡카드 결제';
+      body = c.girlCoupangItems.length
+        ? c.girlCoupangItems.sort((a,b)=>a.date<b.date?-1:1).map(r =>
+            `<div class="sd-item"><span class="sd-date">${fmtDate(r.date)}</span><span class="sd-cat">💳</span><span class="sd-desc">쿠팡카드 결제</span><span class="sd-amt">${fmt(r.amount||0)}</span></div>`
+          ).join('') + `<div class="sd-formula-row total"><span>합계</span><span>${fmt(c.girlCoupang)}</span></div>`
+        : '<div style="color:var(--gray);font-size:13px;padding:8px 0">내역 없음</div>';
+      break;
+    default:
+      return;
+  }
+
+  document.getElementById('settle-detail-title').textContent = title;
+  document.getElementById('settle-detail-body').innerHTML = body;
+  openModal('settle-detail-overlay');
 }
 
 function toggleSettle(done) {
