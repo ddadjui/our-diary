@@ -1265,9 +1265,9 @@ function renderScheduleCal() {
     const arr = Object.values(items);
     const parts = [];
     if (holiday) parts.push(`<span class="preview-holiday">${escHtml(holiday)}</span>`);
-    arr.slice(0, holiday ? 1 : 2).forEach(i => {
-      const who = i.who === 'boy' ? '🐭' : i.who === 'girl' ? '🐱' : '';
-      parts.push(`<span class="preview-sched">${who}${escHtml(i.title||'')}</span>`);
+    arr.slice(0, 2).forEach(i => {
+      const who = i.who === 'boy' ? '🐭' : i.who === 'girl' ? '🐱' : '🐭🐱';
+      parts.push(`<span class="preview-sched">${who} ${escHtml(i.title||'')}</span>`);
     });
     return parts.join('<br>');
   }, 'onScheduleDayClick', (d) => HOLIDAYS[hKey(d)] ? 'holiday' : '');
@@ -1290,7 +1290,7 @@ function onScheduleDayClick(event, d) {
     list.innerHTML = '<div class="empty-msg">일정이 없어요</div>';
   } else {
     list.innerHTML = arr.map(([id, item]) => {
-      const who = item.who === 'boy' ? '🐭 ' : item.who === 'girl' ? '🐱 ' : '';
+      const who = item.who === 'boy' ? '🐭 ' : item.who === 'girl' ? '🐱 ' : '🐭🐱 ';
       return `
       <div class="exp-item">
         <div class="exp-cat-icon">📌</div>
