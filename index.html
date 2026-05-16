@@ -1507,7 +1507,7 @@ function renderSettle() {
 
   const expenses = appData.expenses || {};
   const settlementData = (appData.settlements || {})[ym(settleYear, settleMonth)] || {};
-  const fromStr = `${prevYear}-${String(prevMonth).padStart(2,'0')}-10`;
+  const fromStr = `${prevYear}-${String(prevMonth).padStart(2,'0')}-11`;
   const toStr   = `${settleYear}-${String(settleMonth).padStart(2,'0')}-10`;
 
   // Collect items WITH date for drill-down
@@ -1634,7 +1634,7 @@ function renderSettle() {
   }
 
   document.getElementById('settle-content').innerHTML = `
-  <div style="font-size:12px;color:var(--gray);text-align:center;margin-bottom:8px">📅 정산 기간: ${prevMonth}.10 ~ ${settleMonth}.10</div>
+  <div style="font-size:12px;color:var(--gray);text-align:center;margin-bottom:8px">📅 정산 기간: ${prevMonth}.11 ~ ${settleMonth}.10</div>
   <div class="settle-card">
     <h3>지출 내역</h3>
     <div ${tappable('boy-total')}><span class="settle-label">🐭 주머니쥐</span><span class="settle-val">${fmt(boyTotal)}</span></div>
