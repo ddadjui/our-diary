@@ -1667,8 +1667,8 @@ function renderSettle() {
   </div>
   <div class="settle-card">
     <h3>📋 당월 정산 기록</h3>
-    ${boySharedExtra > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px">🐭 주머니쥐 → 공금 계좌</span><span class="settle-val">${fmt(boySharedExtra)}</span></div>` : ''}
-    ${girlSharedExtra > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px">🐱 땃쥐 → 공금 계좌</span><span class="settle-val">${fmt(girlSharedExtra)}</span></div>` : ''}
+    ${boySharedExtra > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px">🐭 주머니쥐 → 공금 계좌</span><span class="settle-val">${fmt(boySharedExtra)}</span></div>` : boySharedExtra < 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px;color:var(--blue)">🐱 땃쥐 → 🐭 주머니쥐 (공금 과납 환급)</span><span class="settle-val" style="color:var(--blue)">${fmt(-boySharedExtra)}</span></div>` : ''}
+    ${girlSharedExtra > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px">🐱 땃쥐 → 공금 계좌</span><span class="settle-val">${fmt(girlSharedExtra)}</span></div>` : girlSharedExtra < 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px;color:var(--blue)">🐭 주머니쥐 → 🐱 땃쥐 (공금 과납 환급)</span><span class="settle-val" style="color:var(--blue)">${fmt(-girlSharedExtra)}</span></div>` : ''}
     ${boyForGirlAmt > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px">🐱 땃쥐 → 🐭 주머니쥐 (대신 납부)</span><span class="settle-val" style="color:var(--pink)">${fmt(boyForGirlAmt)}</span></div>` : ''}
     ${girlCoupangExp > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px">🐱 땃쥐 → 🐭 주머니쥐 (쿠팡카드)</span><span class="settle-val" style="color:var(--pink)">${fmt(girlCoupangExp)}</span></div>` : ''}
     ${boyCoupang > 0 ? `<div class="settle-row" style="border-top:1px solid #f0f0f0;margin-top:4px;padding-top:8px"><span class="settle-label" style="font-size:13px;color:var(--gray)">🐭 쿠팡카드 납부 완료</span><span class="settle-val" style="color:var(--blue)">${fmt(boyCoupang)}</span></div>` : ''}
@@ -1749,11 +1749,11 @@ function openSettleDetail(type) {
       break;
     case 'boy-personal':
       title = '🐭 주머니쥐 개인 지출';
-      body = itemRows(c.boyItems.filter(i => i.cat !== '공금지출'));
+      body = itemRows(c.boyItems.filter(i => i.cat !== '공금지출' && i.cat !== '쿠팡카드' && i.cat !== '땃쥐대신'));
       break;
     case 'girl-personal':
       title = '🐱 땃쥐 개인 지출';
-      body = itemRows(c.girlItems.filter(i => i.cat !== '공금지출'));
+      body = itemRows(c.girlItems.filter(i => i.cat !== '공금지출' && i.cat !== '쿠팡카드'));
       break;
     case 'boy-shared-formula':
       title = '🐭 주머니쥐 공금 분담 계산';
