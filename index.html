@@ -1566,25 +1566,30 @@ function renderSettle() {
   const sagirl  = sagirlItems.reduce((s,i) => s + Number(i.amount||0), 0);
   const sacommon = sacommonItems.reduce((s,i) => s + Number(i.amount||0), 0);
 
-  // Boy's 공금지출 — split into common vs girl-attributed
+  // Boy's 공금지출 — split into: girl-attributed / boy-only / common
   const boyPublicItems = boyItems.filter(i => i.cat === '공금지출');
-  const boyPublicGirlItems = boyPublicItems.filter(i => GIRL_SHARED_KW.some(kw => (i.desc||'').includes(kw)));
-  const boyPublicCommonItems = boyPublicItems.filter(i => !GIRL_SHARED_KW.some(kw => (i.desc||'').includes(kw)));
-  const boyPublicCat       = boyPublicItems.reduce((s,i) => s + Number(i.amount||0), 0);
-  const boyPublicCatGirl   = boyPublicGirlItems.reduce((s,i) => s + Number(i.amount||0), 0);
-  const boyPublicCatCommon = boyPublicCommonItems.reduce((s,i) => s + Number(i.amount||0), 0);
+  const boyPublicGirlItems    = boyPublicItems.filter(i => GIRL_SHARED_KW.some(kw => (i.desc||'').includes(kw)));
+  const boyPublicBoyOnlyItems = boyPublicItems.filter(i => !GIRL_SHARED_KW.some(kw => (i.desc||'').includes(kw)) && BOY_SHARED_KW.some(kw => (i.desc||'').includes(kw)));
+  const boyPublicCommonItems  = boyPublicItems.filter(i => !GIRL_SHARED_KW.some(kw => (i.desc||'').includes(kw)) && !BOY_SHARED_KW.some(kw => (i.desc||'').includes(kw)));
+  const boyPublicCat         = boyPublicItems.reduce((s,i) => s + Number(i.amount||0), 0);
+  const boyPublicCatGirl     = boyPublicGirlItems.reduce((s,i) => s + Number(i.amount||0), 0);
+  const boyPublicCatBoyOnly  = boyPublicBoyOnlyItems.reduce((s,i) => s + Number(i.amount||0), 0);
+  const boyPublicCatCommon   = boyPublicCommonItems.reduce((s,i) => s + Number(i.amount||0), 0);
 
-  // Girl's 공금지출 — split into common vs boy-attributed
+  // Girl's 공금지출 — split into: boy-attributed / girl-only / common
   const girlPublicItems = girlItems.filter(i => i.cat === '공금지출');
-  const girlPublicBoyItems = girlPublicItems.filter(i => BOY_SHARED_KW.some(kw => (i.desc||'').includes(kw)));
-  const girlPublicCommonItems = girlPublicItems.filter(i => !BOY_SHARED_KW.some(kw => (i.desc||'').includes(kw)));
-  const girlPublicCat      = girlPublicItems.reduce((s,i) => s + Number(i.amount||0), 0);
-  const girlPublicCatBoy   = girlPublicBoyItems.reduce((s,i) => s + Number(i.amount||0), 0);
-  const girlPublicCatCommon = girlPublicCommonItems.reduce((s,i) => s + Number(i.amount||0), 0);
+  const girlPublicBoyItems      = girlPublicItems.filter(i => BOY_SHARED_KW.some(kw => (i.desc||'').includes(kw)));
+  const girlPublicGirlOnlyItems = girlPublicItems.filter(i => !BOY_SHARED_KW.some(kw => (i.desc||'').includes(kw)) && GIRL_SHARED_KW.some(kw => (i.desc||'').includes(kw)));
+  const girlPublicCommonItems   = girlPublicItems.filter(i => !BOY_SHARED_KW.some(kw => (i.desc||'').includes(kw)) && !GIRL_SHARED_KW.some(kw => (i.desc||'').includes(kw)));
+  const girlPublicCat          = girlPublicItems.reduce((s,i) => s + Number(i.amount||0), 0);
+  const girlPublicCatBoy       = girlPublicBoyItems.reduce((s,i) => s + Number(i.amount||0), 0);
+  const girlPublicCatGirlOnly  = girlPublicGirlOnlyItems.reduce((s,i) => s + Number(i.amount||0), 0);
+  const girlPublicCatCommon    = girlPublicCommonItems.reduce((s,i) => s + Number(i.amount||0), 0);
 
-  // If boy fronted girl's utilities via 공금지출, those go to girl's responsibility
-  const sagirl2 = sagirl + boyPublicCatGirl;   // utilities girl owes (shared tab + boy's 공금지출 for utilities)
-  const saboy2  = saboy  + girlPublicCatBoy;   // boy's responsibility fronted by girl
+  // sagirl2: girl's sole-responsibility total (shared tab + boy's 공금지출 for utilities + girl's own 공금지출 for utilities)
+  // saboy2:  boy's sole-responsibility total  (shared tab + girl's 공금지출 for 월세 + boy's own 공금지출 for 월세)
+  const sagirl2 = sagirl + boyPublicCatGirl + girlPublicCatGirlOnly;
+  const saboy2  = saboy  + girlPublicCatBoy + boyPublicCatBoyOnly;
 
   const totalCommon = sacommon + boyPublicCatCommon + girlPublicCatCommon;
   const commonEach  = Math.round(totalCommon / 2);
@@ -1609,8 +1614,8 @@ function renderSettle() {
   // Cache for drill-down
   settleCache = {
     boyItems, girlItems, sharedItems,
-    saboyItems: [...saboyItems, ...girlPublicBoyItems],
-    sagirlItems: [...sagirlItems, ...boyPublicGirlItems],
+    saboyItems: [...saboyItems, ...girlPublicBoyItems, ...boyPublicBoyOnlyItems],
+    sagirlItems: [...sagirlItems, ...boyPublicGirlItems, ...girlPublicGirlOnlyItems],
     sacommonItems,
     boyPublicItems, girlPublicItems,
     boyPublicGirlItems, boyPublicCommonItems,
@@ -1634,7 +1639,7 @@ function renderSettle() {
   }
 
   document.getElementById('settle-content').innerHTML = `
-  <div style="font-size:12px;color:var(--gray);text-align:center;margin-bottom:8px">📅 정산 기간: ${prevMonth}.11 ~ ${settleMonth}.10</div>
+  <div style="font-size:12px;color:var(--gray);text-align:center;margin-bottom:8px">📅 정산 기간: ${prevYear !== settleYear ? `${prevYear}.` : ''}${prevMonth}.11 ~ ${settleMonth}.10</div>
   <div class="settle-card">
     <h3>지출 내역</h3>
     <div ${tappable('boy-total')}><span class="settle-label">🐭 주머니쥐</span><span class="settle-val">${fmt(boyTotal)}</span></div>
