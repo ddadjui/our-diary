@@ -359,7 +359,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
     <!-- 할 일 -->
     <div id="page-todo" class="page">
       <div class="todo-input-row">
-        <input type="text" id="todo-input" placeholder="할 일 추가..." onkeydown="if(event.key==='Enter')addTodo()">
+        <input type="text" id="todo-input" placeholder="할 일 추가..." lang="ko" autocomplete="off" autocorrect="off" spellcheck="false" onkeydown="if(event.key==='Enter')addTodo()">
         <button onclick="addTodo()">+</button>
       </div>
       <div id="todo-active-list"></div>
@@ -490,7 +490,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
     <h2 id="exp-add-title">지출 추가</h2>
     <div class="form-group">
       <label>내용</label>
-      <input type="text" id="exp-desc" placeholder="예: 점심 김치찌개">
+      <input type="text" id="exp-desc" placeholder="예: 점심 김치찌개" lang="ko" autocomplete="off" autocorrect="off" spellcheck="false">
     </div>
     <div class="form-group">
       <label>금액 (원)</label>
@@ -527,11 +527,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
     <h2 id="meal-modal-title"></h2>
     <div class="form-group">
       <label>🌞 점심</label>
-      <input type="text" id="meal-lunch-input" placeholder="예: 닭도리탕">
+      <input type="text" id="meal-lunch-input" placeholder="예: 닭도리탕" lang="ko" autocomplete="off" autocorrect="off" spellcheck="false">
     </div>
     <div class="form-group">
       <label>🌙 저녁</label>
-      <input type="text" id="meal-dinner-input" placeholder="예: 된장찌개">
+      <input type="text" id="meal-dinner-input" placeholder="예: 된장찌개" lang="ko" autocomplete="off" autocorrect="off" spellcheck="false">
     </div>
     <div class="btn-row">
       <button class="btn btn-gray" onclick="closeModal('meal-overlay')">취소</button>
@@ -556,7 +556,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
     </div>
     <div class="form-group">
       <label>일정 제목</label>
-      <input type="text" id="schedule-input" placeholder="일정 제목">
+      <input type="text" id="schedule-input" placeholder="일정 제목" lang="ko" autocomplete="off" autocorrect="off" spellcheck="false">
     </div>
     <div class="btn-row">
       <button class="btn btn-gray" onclick="closeModal('schedule-overlay')">취소</button>
@@ -572,15 +572,15 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
     <h2 id="recipe-modal-title">레시피 추가</h2>
     <div class="form-group">
       <label>제목</label>
-      <input type="text" id="recipe-title-input" placeholder="예: 부대찌개">
+      <input type="text" id="recipe-title-input" placeholder="예: 부대찌개" lang="ko" autocomplete="off" autocorrect="off" spellcheck="false">
     </div>
     <div class="form-group">
       <label>재료</label>
-      <textarea id="recipe-ingredients-input" placeholder="스팸, 베이컨, 김치, 두부, 어묵..." style="min-height:80px"></textarea>
+      <textarea id="recipe-ingredients-input" placeholder="스팸, 베이컨, 김치, 두부, 어묵..." style="min-height:80px" lang="ko" autocomplete="off" autocorrect="off" spellcheck="false"></textarea>
     </div>
     <div class="form-group">
       <label>조리 순서</label>
-      <textarea id="recipe-steps-input" placeholder="1. 재료를 손질한다&#10;2. 냄비에 물을 끓인다&#10;3. ..." style="min-height:120px"></textarea>
+      <textarea id="recipe-steps-input" placeholder="1. 재료를 손질한다&#10;2. 냄비에 물을 끓인다&#10;3. ..." style="min-height:120px" lang="ko" autocomplete="off" autocorrect="off" spellcheck="false"></textarea>
     </div>
     <div class="btn-row">
       <button class="btn btn-danger btn-sm" id="recipe-del-btn" onclick="deleteRecipe()" style="display:none;width:auto">삭제</button>
