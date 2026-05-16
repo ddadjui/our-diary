@@ -560,7 +560,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
     </div>
     <div class="btn-row">
       <button class="btn btn-gray" onclick="closeModal('schedule-overlay')">취소</button>
-      <button class="btn btn-blue" onclick="saveSchedule()">저장</button>
+      <button class="btn btn-danger" id="sched-del-btn" style="display:none" onclick="deleteScheduleEditing()">삭제</button>
+      <button class="btn btn-blue" id="sched-save-btn" onclick="saveSchedule()">저장</button>
     </div>
   </div>
 </div>
@@ -736,6 +737,7 @@ let selectedDay = null;
 let selectedCat = '식비';
 let editingRecipeId = null;
 let editingScheduleDay = null;
+let editingScheduleId = null;
 let editingMealDay = null;
 let editingExpenseId = null;
 let editingExpenseDayStr = null;
@@ -1282,6 +1284,9 @@ function onScheduleDayClick(event, d) {
 
   document.getElementById('schedule-modal-title').textContent = `${scheduleMonth}월 ${d}일 일정`;
   document.getElementById('schedule-input').value = '';
+  document.getElementById('sched-save-btn').textContent = '저장';
+  document.getElementById('sched-del-btn').style.display = 'none';
+  editingScheduleId = null;
   selectSchedWho('');
 
   const arr = Object.entries(items);
@@ -1295,6 +1300,7 @@ function onScheduleDayClick(event, d) {
       <div class="exp-item">
         <div class="exp-cat-icon">📌</div>
         <div class="exp-info"><div class="exp-desc">${who}${escHtml(item.title||'')}</div></div>
+        <button class="exp-edit" onclick="openScheduleEdit('${dayStr}','${id}')">✏️</button>
         <button class="exp-del" onclick="deleteSchedule('${dayStr}','${id}')">✕</button>
       </div>`;
     }).join('');
@@ -1309,24 +1315,46 @@ function selectSchedWho(who) {
   });
 }
 
+function openScheduleEdit(dayStr, id) {
+  const key = ym(scheduleYear, scheduleMonth);
+  const item = ((appData.schedule || {})[key] || {})[dayStr]?.[id] || {};
+  editingScheduleId = id;
+  document.getElementById('schedule-input').value = item.title || '';
+  document.getElementById('sched-save-btn').textContent = '수정 완료';
+  document.getElementById('sched-del-btn').style.display = 'inline-flex';
+  selectSchedWho(item.who || '');
+}
+
 function saveSchedule() {
   const title = document.getElementById('schedule-input').value.trim();
   if (!title) { closeModal('schedule-overlay'); return; }
   const dayStr = String(editingScheduleDay).padStart(2,'0');
   const key = ym(scheduleYear, scheduleMonth);
-  const path = `${room}/schedule/${key}/${dayStr}`;
   const data = { title, ts: Date.now() };
   if (schedWho) data.who = schedWho;
-  db.ref(path).push(data)
-    .then(() => { closeModal('schedule-overlay'); showToast('일정을 추가했어요 📅'); })
-    .catch(e => showToast('저장 실패: ' + e.message));
+  if (editingScheduleId) {
+    db.ref(`${room}/schedule/${key}/${dayStr}/${editingScheduleId}`).update(data)
+      .then(() => { editingScheduleId = null; onScheduleDayClick(null, editingScheduleDay); showToast('수정했어요 ✏️'); })
+      .catch(e => showToast('저장 실패: ' + e.message));
+  } else {
+    db.ref(`${room}/schedule/${key}/${dayStr}`).push(data)
+      .then(() => { closeModal('schedule-overlay'); showToast('일정을 추가했어요 📅'); })
+      .catch(e => showToast('저장 실패: ' + e.message));
+  }
+}
+
+function deleteScheduleEditing() {
+  if (!editingScheduleId) return;
+  if (!confirm('이 일정을 삭제할까요?')) return;
+  const dayStr = String(editingScheduleDay).padStart(2,'0');
+  deleteSchedule(dayStr, editingScheduleId);
 }
 
 function deleteSchedule(dayStr, id) {
   if (!confirm('이 일정을 삭제할까요?')) return;
   const key = ym(scheduleYear, scheduleMonth);
   db.ref(`${room}/schedule/${key}/${dayStr}/${id}`).remove()
-    .then(() => { showToast('삭제했어요'); onScheduleDayClick(null, Number(dayStr)); });
+    .then(() => { editingScheduleId = null; showToast('삭제했어요'); onScheduleDayClick(null, Number(dayStr)); });
 }
 
 // ══════════════════════════════════════════════
