@@ -497,7 +497,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
     </div>
     <div class="form-group">
       <label>금액 (원)</label>
-      <input type="number" id="exp-amount" placeholder="0" inputmode="numeric">
+      <input type="text" id="exp-amount" placeholder="0" inputmode="numeric" autocomplete="off" oninput="fmtAmountInput(this)">
     </div>
     <div class="form-group">
       <label>카테고리</label>
@@ -513,6 +513,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
         <div class="cat-chip" data-cat="쿠팡카드" onclick="selectCat(this)">💳 쿠팡카드</div>
         <div class="cat-chip" data-cat="공금지출" onclick="selectCat(this)">🤝 공금지출</div>
         <div class="cat-chip" data-cat="땃쥐대신" onclick="selectCat(this)">🐱 땃쥐대신</div>
+        <div class="cat-chip" data-cat="미용/화장품" onclick="selectCat(this)">💄 미용/화장품</div>
         <div class="cat-chip" data-cat="기타" onclick="selectCat(this)">📦 기타</div>
       </div>
     </div>
@@ -675,7 +676,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
 //  State & Config
 // ══════════════════════════════════════════════
 const STORAGE_KEY = 'hh-fb-config';
-const CAT_ICONS = {식비:'🍽️',교통:'🚇',쇼핑:'🛍️',의료:'💊',구독:'📱',여가:'🎮',생활비:'🏠',선물:'🎁',쿠팡카드:'💳',공금지출:'🤝',땃쥐대신:'🐱',기타:'📦'};
+const CAT_ICONS = {식비:'🍽️',교통:'🚇',쇼핑:'🛍️',의료:'💊',구독:'📱',여가:'🎮',생활비:'🏠',선물:'🎁',쿠팡카드:'💳',공금지출:'🤝',땃쥐대신:'🐱','미용/화장품':'💄',기타:'📦'};
 
 // 한국 공휴일
 const HOLIDAYS = (() => {
@@ -1139,7 +1140,7 @@ function openExpenseEdit(dayStr, id) {
   document.getElementById('exp-add-title').textContent = '지출 수정';
   document.getElementById('exp-save-btn').textContent = '수정 완료';
   document.getElementById('exp-desc').value = item.desc || '';
-  document.getElementById('exp-amount').value = item.amount || '';
+  document.getElementById('exp-amount').value = item.amount ? Number(item.amount).toLocaleString('ko-KR') : '';
   document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('selected'));
   const catEl = document.querySelector(`.cat-chip[data-cat="${item.cat || '기타'}"]`);
   if (catEl) catEl.classList.add('selected');
@@ -1153,9 +1154,14 @@ function selectCat(el) {
   selectedCat = el.dataset.cat;
 }
 
+function fmtAmountInput(el) {
+  const raw = el.value.replace(/[^0-9]/g, '');
+  el.value = raw ? Number(raw).toLocaleString('ko-KR') : '';
+}
+
 function saveExpense() {
   const desc = document.getElementById('exp-desc').value.trim();
-  const amount = parseInt(document.getElementById('exp-amount').value) || 0;
+  const amount = parseInt((document.getElementById('exp-amount').value || '').replace(/,/g, '')) || 0;
   if (!desc) { showToast('내용을 입력해주세요'); return; }
   if (!amount) { showToast('금액을 입력해주세요'); return; }
 
