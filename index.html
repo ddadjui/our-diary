@@ -472,8 +472,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
 <!-- Expense Detail Modal -->
 <div class="overlay" id="exp-detail-overlay" onclick="overlayClickClose(event,'exp-detail-overlay')">
   <div class="sheet">
-    <div class="sheet-handle"></div>
-    <h2 id="exp-detail-title"></h2>
+    <div class="sheet-handle" onclick="closeModal('exp-detail-overlay')" style="cursor:pointer;padding:4px 0"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <h2 id="exp-detail-title" style="margin-bottom:0"></h2>
+      <button onclick="closeModal('exp-detail-overlay')" style="background:none;border:none;font-size:22px;color:#bbb;cursor:pointer;padding:4px;line-height:1">✕</button>
+    </div>
     <div id="exp-detail-list" class="expense-list"></div>
     <div id="coupang-done-section" style="margin-top:8px"></div>
     <div class="btn-row" style="margin-top:12px">
@@ -543,8 +546,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
 <!-- Schedule Modal -->
 <div class="overlay" id="schedule-overlay" onclick="overlayClickClose(event,'schedule-overlay')">
   <div class="sheet">
-    <div class="sheet-handle"></div>
-    <h2 id="schedule-modal-title"></h2>
+    <div class="sheet-handle" onclick="closeModal('schedule-overlay')" style="cursor:pointer;padding:4px 0"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <h2 id="schedule-modal-title" style="margin-bottom:0"></h2>
+      <button onclick="closeModal('schedule-overlay')" style="background:none;border:none;font-size:22px;color:#bbb;cursor:pointer;padding:4px;line-height:1">✕</button>
+    </div>
     <div id="schedule-detail-list" class="expense-list"></div>
     <div class="form-group" style="margin-top:14px">
       <label>누구</label>
@@ -649,8 +655,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
 <!-- Settle Detail -->
 <div class="overlay" id="settle-detail-overlay" onclick="overlayClickClose(event,'settle-detail-overlay')">
   <div class="sheet">
-    <div class="sheet-handle"></div>
-    <h2 id="settle-detail-title"></h2>
+    <div class="sheet-handle" onclick="closeModal('settle-detail-overlay')" style="cursor:pointer;padding:4px 0"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <h2 id="settle-detail-title" style="margin-bottom:0"></h2>
+      <button onclick="closeModal('settle-detail-overlay')" style="background:none;border:none;font-size:22px;color:#bbb;cursor:pointer;padding:4px;line-height:1">✕</button>
+    </div>
     <div id="settle-detail-body" style="max-height:58vh;overflow-y:auto;margin-top:10px"></div>
     <div class="btn-row" style="margin-top:12px">
       <button class="btn btn-gray" onclick="closeModal('settle-detail-overlay')">닫기</button>
