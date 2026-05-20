@@ -574,6 +574,26 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
   </div>
 </div>
 
+<!-- Schedule Move Modal -->
+<div class="overlay" id="sched-move-overlay" onclick="overlayClickClose(event,'sched-move-overlay')">
+  <div class="sheet" style="max-height:300px">
+    <div class="sheet-handle" onclick="closeModal('sched-move-overlay')" style="cursor:pointer;padding:4px 0"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <h2 style="margin-bottom:0">📅 일정 이동</h2>
+      <button onclick="closeModal('sched-move-overlay')" style="background:none;border:none;font-size:22px;color:#bbb;cursor:pointer;padding:4px;line-height:1">✕</button>
+    </div>
+    <div id="sched-move-title" style="color:#666;font-size:15px;margin-bottom:16px;padding:10px;background:#f8f8f8;border-radius:10px"></div>
+    <div class="form-group">
+      <label>이동할 날짜</label>
+      <input type="date" id="sched-move-date" style="width:100%;padding:10px;border:1px solid #eee;border-radius:10px;font-size:16px;box-sizing:border-box">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-gray" onclick="closeModal('sched-move-overlay')">취소</button>
+      <button class="btn btn-blue" onclick="confirmScheduleMove()">이동</button>
+    </div>
+  </div>
+</div>
+
 <!-- Recipe Add/Edit Modal -->
 <div class="overlay" id="recipe-overlay" onclick="overlayClickClose(event,'recipe-overlay')">
   <div class="sheet">
@@ -749,6 +769,7 @@ let selectedCat = '식비';
 let editingRecipeId = null;
 let editingScheduleDay = null;
 let editingScheduleId = null;
+let movingScheduleDayStr = null, movingScheduleId = null;
 let editingMealDay = null;
 let editingExpenseId = null;
 let editingExpenseDayStr = null;
@@ -1316,6 +1337,7 @@ function onScheduleDayClick(event, d) {
       <div class="exp-item">
         <div class="exp-cat-icon">📌</div>
         <div class="exp-info"><div class="exp-desc">${who}${escHtml(item.title||'')}</div></div>
+        <button class="exp-edit" onclick="openScheduleMove('${dayStr}','${id}')" title="이동">➡️</button>
         <button class="exp-edit" onclick="openScheduleEdit('${dayStr}','${id}')">✏️</button>
         <button class="exp-del" onclick="deleteSchedule('${dayStr}','${id}')">✕</button>
       </div>`;
@@ -1371,6 +1393,51 @@ function deleteSchedule(dayStr, id) {
   const key = ym(scheduleYear, scheduleMonth);
   db.ref(`${room}/schedule/${key}/${dayStr}/${id}`).remove()
     .then(() => { editingScheduleId = null; showToast('삭제했어요'); onScheduleDayClick(null, Number(dayStr)); });
+}
+
+function openScheduleMove(dayStr, id) {
+  const key = ym(scheduleYear, scheduleMonth);
+  const item = ((appData.schedule || {})[key] || {})[dayStr]?.[id] || {};
+  movingScheduleDayStr = dayStr;
+  movingScheduleId = id;
+  const who = item.who === 'boy' ? '🐭 ' : item.who === 'girl' ? '🐱 ' : '🐭🐱 ';
+  document.getElementById('sched-move-title').textContent = who + (item.title || '');
+  const dateStr = `${scheduleYear}-${String(scheduleMonth).padStart(2,'0')}-${dayStr}`;
+  document.getElementById('sched-move-date').value = dateStr;
+  openModal('sched-move-overlay');
+}
+
+async function confirmScheduleMove() {
+  const dateVal = document.getElementById('sched-move-date').value;
+  if (!dateVal) { showToast('날짜를 선택해주세요'); return; }
+  const [y, m, d] = dateVal.split('-').map(Number);
+  const newDayStr = String(d).padStart(2,'0');
+  const newKey = ym(y, m);
+  const oldKey = ym(scheduleYear, scheduleMonth);
+
+  if (newKey === oldKey && newDayStr === movingScheduleDayStr) {
+    closeModal('sched-move-overlay');
+    return;
+  }
+
+  const item = ((appData.schedule || {})[oldKey] || {})[movingScheduleDayStr]?.[movingScheduleId];
+  if (!item) { closeModal('sched-move-overlay'); return; }
+
+  try {
+    await db.ref(`${room}/schedule/${newKey}/${newDayStr}`).push(item);
+    await db.ref(`${room}/schedule/${oldKey}/${movingScheduleDayStr}/${movingScheduleId}`).remove();
+    closeModal('sched-move-overlay');
+    closeModal('schedule-overlay');
+    if (y === scheduleYear && m === scheduleMonth) {
+      renderScheduleCal();
+      onScheduleDayClick(null, d);
+    } else {
+      renderScheduleCal();
+    }
+    showToast(`${m}월 ${d}일로 이동했어요 📅`);
+  } catch(e) {
+    showToast('이동 실패: ' + e.message);
+  }
 }
 
 // ══════════════════════════════════════════════
