@@ -782,8 +782,16 @@ let settleCache = null;
 // ══════════════════════════════════════════════
 function init() {
   const now = new Date();
-  expenseYear = mealYear = scheduleYear = settleYear = now.getFullYear();
-  expenseMonth = mealMonth = scheduleMonth = settleMonth = now.getMonth() + 1;
+  expenseYear = mealYear = scheduleYear = now.getFullYear();
+  expenseMonth = mealMonth = scheduleMonth = now.getMonth() + 1;
+  // 정산탭: 20일 이후면 다음 달 기준으로 표시
+  let sM = now.getMonth() + 1, sY = now.getFullYear();
+  if (now.getDate() >= 20) {
+    sM++;
+    if (sM > 12) { sM = 1; sY++; }
+  }
+  settleYear = sY;
+  settleMonth = sM;
 
   const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
   cfg = {
@@ -1042,7 +1050,11 @@ function goToToday(type) {
   if (type === 'expense') { expenseYear = y; expenseMonth = m; renderExpenseCal(); }
   else if (type === 'meal') { mealYear = y; mealMonth = m; renderMealCal(); }
   else if (type === 'schedule') { scheduleYear = y; scheduleMonth = m; renderScheduleCal(); }
-  else if (type === 'settle') { settleYear = y; settleMonth = m; renderSettle(); }
+  else if (type === 'settle') {
+    let sm = m, sy = y;
+    if (now.getDate() >= 20) { sm++; if (sm > 12) { sm = 1; sy++; } }
+    settleYear = sy; settleMonth = sm; renderSettle();
+  }
 }
 
 function renderExpenseCal() {
