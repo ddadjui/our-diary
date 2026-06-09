@@ -780,18 +780,20 @@ let settleCache = null;
 // ══════════════════════════════════════════════
 //  Init
 // ══════════════════════════════════════════════
+// 정산탭 기준 월: 오늘이 20일 이후면 다음 달
+function settleMonthFor(now) {
+  let m = now.getMonth() + 1, y = now.getFullYear();
+  if (now.getDate() >= 20) { m++; if (m > 12) { m = 1; y++; } }
+  return { y, m };
+}
+
 function init() {
   const now = new Date();
   expenseYear = mealYear = scheduleYear = now.getFullYear();
   expenseMonth = mealMonth = scheduleMonth = now.getMonth() + 1;
-  // 정산탭: 20일 이후면 다음 달 기준으로 표시
-  let sM = now.getMonth() + 1, sY = now.getFullYear();
-  if (now.getDate() >= 20) {
-    sM++;
-    if (sM > 12) { sM = 1; sY++; }
-  }
-  settleYear = sY;
-  settleMonth = sM;
+  const s = settleMonthFor(now);
+  settleYear = s.y;
+  settleMonth = s.m;
 
   const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
   cfg = {
@@ -1051,9 +1053,8 @@ function goToToday(type) {
   else if (type === 'meal') { mealYear = y; mealMonth = m; renderMealCal(); }
   else if (type === 'schedule') { scheduleYear = y; scheduleMonth = m; renderScheduleCal(); }
   else if (type === 'settle') {
-    let sm = m, sy = y;
-    if (now.getDate() >= 20) { sm++; if (sm > 12) { sm = 1; sy++; } }
-    settleYear = sy; settleMonth = sm; renderSettle();
+    const s = settleMonthFor(now);
+    settleYear = s.y; settleMonth = s.m; renderSettle();
   }
 }
 
@@ -1428,6 +1429,7 @@ async function confirmScheduleMove() {
   const oldKey = ym(scheduleYear, scheduleMonth);
 
   if (newKey === oldKey && newDayStr === movingScheduleDayStr) {
+    showToast('이미 그 날짜예요');
     closeModal('sched-move-overlay');
     return;
   }
@@ -1439,13 +1441,9 @@ async function confirmScheduleMove() {
     await db.ref(`${room}/schedule/${newKey}/${newDayStr}`).push(item);
     await db.ref(`${room}/schedule/${oldKey}/${movingScheduleDayStr}/${movingScheduleId}`).remove();
     closeModal('sched-move-overlay');
-    closeModal('schedule-overlay');
-    if (y === scheduleYear && m === scheduleMonth) {
-      renderScheduleCal();
-      onScheduleDayClick(null, d);
-    } else {
-      renderScheduleCal();
-    }
+    scheduleYear = y; scheduleMonth = m;   // 이동한 달로 전환
+    renderScheduleCal();
+    onScheduleDayClick(null, d);           // 항상 상세 모달 표시
     showToast(`${m}월 ${d}일로 이동했어요 📅`);
   } catch(e) {
     showToast('이동 실패: ' + e.message);
@@ -1498,6 +1496,7 @@ function toggleTodo(id, done) {
 }
 
 function deleteTodo(id) {
+  if (!confirm('이 할 일을 삭제할까요?')) return;
   db.ref(`${room}/todos/${id}`).remove();
 }
 
