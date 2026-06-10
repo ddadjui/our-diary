@@ -15,6 +15,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html{background:var(--white)}
@@ -819,36 +820,46 @@ function initFirebase() {
       projectId: cfg.projectId || FIREBASE_CONFIG.projectId
     });
     db = firebase.database();
-    let firstLoad = true;
-    db.ref(room).on('value', snap => {
-      appData = snap.val() || {};
-      if (firstLoad) {
-        firstLoad = false;
-        // 데이터가 있는 가장 최근 월로 자동 이동
-        const allMonths = [];
-        const exp = appData.expenses || {};
-        ['boy','girl','shared'].forEach(tab => {
-          Object.keys(exp[tab] || {}).forEach(m => allMonths.push(m));
-        });
-        const now = new Date();
-        const nowKey = ym(now.getFullYear(), now.getMonth()+1);
-        // 현재 달에 데이터 없으면 가장 최근 데이터 달로 이동
-        const hasNowData = allMonths.some(m => m === nowKey);
-        if (!hasNowData && allMonths.length) {
-          const latest = allMonths.sort().reverse()[0];
-          const [y, mo] = latest.split('-').map(Number);
-          expenseYear = settleYear = y;
-          expenseMonth = settleMonth = mo;
-        }
-      }
-      renderAll();
-    });
+    // 익명 인증 후 데이터 리스너 연결 (보안 규칙 auth != null 대응)
+    firebase.auth().signInAnonymously()
+      .then(() => attachDataListener())
+      .catch(e => {
+        showToast('인증 오류: ' + e.message);
+        document.getElementById('setup-screen').style.display = 'flex';
+      });
     document.getElementById('setup-screen').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
   } catch(e) {
     showToast('Firebase 연결 오류: ' + e.message);
     document.getElementById('setup-screen').style.display = 'flex';
   }
+}
+
+function attachDataListener() {
+  let firstLoad = true;
+  db.ref(room).on('value', snap => {
+    appData = snap.val() || {};
+    if (firstLoad) {
+      firstLoad = false;
+      // 데이터가 있는 가장 최근 월로 자동 이동
+      const allMonths = [];
+      const exp = appData.expenses || {};
+      ['boy','girl','shared'].forEach(tab => {
+        Object.keys(exp[tab] || {}).forEach(m => allMonths.push(m));
+      });
+      const now = new Date();
+      const nowKey = ym(now.getFullYear(), now.getMonth()+1);
+      // 현재 달에 데이터 없으면 가장 최근 데이터 달로 이동
+      const hasNowData = allMonths.some(m => m === nowKey);
+      if (!hasNowData && allMonths.length) {
+        const latest = allMonths.sort().reverse()[0];
+        const [y, mo] = latest.split('-').map(Number);
+        expenseYear = settleYear = y;
+        expenseMonth = settleMonth = mo;
+      }
+    }
+    renderAll();
+  });
 }
 
 function renderAll() {
