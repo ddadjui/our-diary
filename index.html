@@ -781,10 +781,10 @@ let settleCache = null;
 // ══════════════════════════════════════════════
 //  Init
 // ══════════════════════════════════════════════
-// 정산탭 기준 월: 오늘이 20일 이후면 다음 달
+// 정산탭 기준 월: 오늘이 11일 이후면 다음 달 (정산 마감 9일 기준)
 function settleMonthFor(now) {
   let m = now.getMonth() + 1, y = now.getFullYear();
-  if (now.getDate() >= 20) { m++; if (m > 12) { m = 1; y++; } }
+  if (now.getDate() >= 11) { m++; if (m > 12) { m = 1; y++; } }
   return { y, m };
 }
 
