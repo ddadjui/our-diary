@@ -472,7 +472,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
       <h2 id="exp-detail-title" style="margin-bottom:0"></h2>
       <button onclick="closeModal('exp-detail-overlay')" style="background:none;border:none;font-size:22px;color:#bbb;cursor:pointer;padding:4px;line-height:1">✕</button>
     </div>
-    <div id="exp-detail-list" class="expense-list"></div>
+    <div id="exp-detail-list" class="expense-list" style="max-height:58vh;overflow-y:auto"></div>
     <div class="btn-row" style="margin-top:12px">
       <button class="btn btn-primary" style="width:100%" onclick="openExpenseAdd()">+ 지출 추가</button>
     </div>
@@ -546,7 +546,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
       <h2 id="schedule-modal-title" style="margin-bottom:0"></h2>
       <button onclick="closeModal('schedule-overlay')" style="background:none;border:none;font-size:22px;color:#bbb;cursor:pointer;padding:4px;line-height:1">✕</button>
     </div>
-    <div id="schedule-detail-list" class="expense-list"></div>
+    <div id="schedule-detail-list" class="expense-list" style="max-height:40vh;overflow-y:auto"></div>
     <div class="form-group" style="margin-top:14px">
       <label>누구</label>
       <div class="sub-tabs" style="margin-bottom:0">
@@ -635,9 +635,12 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
 <!-- Category Breakdown Modal -->
 <div class="overlay" id="cat-breakdown-overlay" onclick="overlayClickClose(event,'cat-breakdown-overlay')">
   <div class="sheet">
-    <div class="sheet-handle"></div>
-    <h2 id="cat-breakdown-title">카테고리별 지출</h2>
-    <div id="cat-breakdown-content" style="margin-top:12px"></div>
+    <div class="sheet-handle" onclick="closeModal('cat-breakdown-overlay')" style="cursor:pointer;padding:4px 0"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <h2 id="cat-breakdown-title" style="margin-bottom:0">카테고리별 지출</h2>
+      <button onclick="closeModal('cat-breakdown-overlay')" style="background:none;border:none;font-size:22px;color:#bbb;cursor:pointer;padding:4px;line-height:1">✕</button>
+    </div>
+    <div id="cat-breakdown-content" style="max-height:58vh;overflow-y:auto;margin-top:12px"></div>
     <div class="btn-row" style="margin-top:16px">
       <button class="btn btn-gray" onclick="closeModal('cat-breakdown-overlay')">닫기</button>
     </div>
