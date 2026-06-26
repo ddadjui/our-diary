@@ -3,61 +3,72 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>우리 가계부 🐭🐱</title>
+<title>우리 가계부</title>
 <meta name="description" content="우리 둘만의 가계부">
-<meta name="theme-color" content="#FF8FAB">
+<meta name="theme-color" content="#FF8FBE">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="우리가계부">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@latest/dist/web/static/pretendard.css">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html{background:var(--white)}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;min-height:100vh;overflow-x:hidden}
 :root{
-  --pink:#FF8FAB;--blue:#89C4E1;--mint:#7DCFB6;
-  --pink-light:#fff0f3;--blue-light:#eaf5fb;--mint-light:#edfaf6;
-  --gray:#888;--gray-light:#f0f0f0;--white:#fff;
+  --navy:#021E58;
+  --pink:#E85C97;        /* accent text/links/amounts/active */
+  --pink-btn:#FF8FBE;    /* primary action buttons, FAB, today circle, step nums */
+  --blue:#3A5BA0;        /* boy / saturday */
+  --mint:#7DCFB6;
+  --pink-light:#FFD9E8;  /* pill / selected / today-btn bg */
+  --pink-border:#FFD0E3;
+  --blue-light:#eaf2fb;--mint-light:#edfaf6;
+  --gray:#9A9CA8;--gray2:#A9AAB5;--gray-light:#EAEAEE;
+  --white:#fff;--bg:#F4F4F5;--dark:#1E2233;
+  --card-border:#EFEFF2;--outer-border:#E7E7EB;
   --nav-h:64px;--header-h:56px;
 }
+html{background:var(--bg)}
+body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);color:var(--dark);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 
 /* ───── Layout ───── */
 #app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
-#header{height:var(--header-h);background:var(--white);display:flex;align-items:center;justify-content:space-between;padding:0 16px;box-shadow:0 1px 4px rgba(0,0,0,.08);z-index:100;flex-shrink:0}
-#header h1{font-size:18px;font-weight:700;color:var(--pink)}
+#header{height:var(--header-h);background:var(--white);display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:1px solid var(--card-border);z-index:100;flex-shrink:0}
+#header h1{font-size:18px;font-weight:700;color:var(--navy);letter-spacing:-.02em;display:flex;align-items:center;gap:8px}
 #header .header-right{display:flex;gap:8px}
-#header button{background:none;border:none;font-size:20px;cursor:pointer;padding:4px}
-#page-area{flex:1;overflow-y:auto;padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 8px)}
-#nav{background:#fff;display:flex;flex-direction:column;position:fixed;bottom:0;left:0;right:0;box-shadow:0 -1px 8px rgba(0,0,0,.1);z-index:100}
-#nav-buttons{display:flex;height:var(--nav-h)}
+#header button{background:none;border:none;font-size:20px;cursor:pointer;padding:4px;color:#ADAEB9}
+#page-area{flex:1;overflow-y:auto;background:var(--bg);padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 8px)}
+#nav{background:#fff;display:flex;flex-direction:column;position:fixed;bottom:0;left:0;right:0;border-top:1px solid #F1EBEC;z-index:100}
+#nav-buttons{display:flex;height:var(--nav-h);padding:0 4px}
 #nav-safe{height:env(safe-area-inset-bottom,0px);min-height:0;background:#fff;flex-shrink:0}
-.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:none;cursor:pointer;font-size:9px;color:var(--gray);transition:.15s;padding:6px 0}
-.nav-btn .nav-icon{font-size:22px;line-height:1}
-.nav-btn.active{color:var(--pink)}
-.nav-btn.active .nav-icon{transform:scale(1.12)}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border:none;background:none;cursor:pointer;font-size:10px;font-weight:400;letter-spacing:-.02em;color:#A7A9B4;transition:.15s;padding:6px 0}
+.nav-btn .nav-icon{display:flex;align-items:center;justify-content:center;line-height:0}
+.nav-btn .nav-icon svg{width:21px;height:21px;stroke:currentColor}
+.nav-btn.active{color:var(--pink);font-weight:600}
+.mascot{display:inline-flex;align-items:center;line-height:0;flex-shrink:0;vertical-align:middle}
 
 /* ───── Pages ───── */
 .page{display:none;padding:12px}
 .page.active{display:block}
 
 /* ───── Sub-tabs ───── */
-.sub-tabs{display:flex;background:var(--gray-light);border-radius:12px;padding:3px;margin-bottom:12px}
-.sub-tab{flex:1;text-align:center;padding:7px 4px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;color:var(--gray);transition:.15s}
-.sub-tab.active{background:var(--white);color:var(--pink);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.sub-tabs{display:flex;background:var(--gray-light);border-radius:13px;padding:3px;margin-bottom:13px}
+.sub-tab{flex:1;display:flex;align-items:center;justify-content:center;gap:4px;text-align:center;padding:8px 4px;border-radius:10px;cursor:pointer;font-size:12.5px;font-weight:500;color:var(--gray);transition:.15s}
+.sub-tab.active{background:var(--white);color:var(--pink);font-weight:700;box-shadow:0 1px 3px rgba(2,30,88,.08)}
 
 /* ───── Month Nav ───── */
-.month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:4px 0}
-.month-nav button{background:none;border:none;font-size:22px;cursor:pointer;color:var(--gray);padding:4px 8px}
-.month-nav span{font-size:17px;font-weight:700;cursor:pointer;padding:4px 10px;border-radius:20px;transition:.15s}
-.month-nav span:hover{background:var(--pink-light);color:var(--pink)}
-.month-nav .today-btn{background:var(--pink-light);border:none;color:var(--pink);font-size:12px;font-weight:700;padding:4px 10px;border-radius:14px;cursor:pointer;transition:.15s;flex-shrink:0}
-.month-nav .today-btn:active{background:var(--pink);color:#fff}
+.month-nav{display:flex;align-items:center;justify-content:center;gap:7px;position:relative;height:34px;margin-bottom:11px}
+.month-nav button.arr,.month-nav>button:not(.today-btn){background:none;border:none;font-size:20px;cursor:pointer;color:#C3C4CE;padding:4px 8px;line-height:1}
+.month-nav span{font-size:15.5px;font-weight:700;color:var(--dark);cursor:pointer;padding:4px 8px;border-radius:20px;transition:.15s}
+.month-nav span:active{background:var(--pink-light);color:var(--pink)}
+.month-nav .today-btn{position:absolute;right:0;background:var(--pink-light);border:none;color:var(--pink);font-size:11px;font-weight:700;padding:5px 11px;border-radius:13px;cursor:pointer;transition:.15s;flex-shrink:0}
+.month-nav .today-btn:active{background:var(--pink-btn);color:#fff}
 
 /* ───── Month Picker ───── */
 #month-picker-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:300;display:none;align-items:flex-end;justify-content:center}
@@ -72,66 +83,68 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
 .mp-month-btn.active{border-color:var(--pink);background:var(--pink);color:#fff}
 
 /* ───── Summary Card ───── */
-.summary-card{background:var(--white);border-radius:16px;padding:14px 18px;margin-bottom:12px;box-shadow:0 1px 6px rgba(0,0,0,.07);cursor:pointer;transition:.12s;user-select:none}
-.summary-card:active{opacity:.8;transform:scale(.99)}
-.summary-card .label{font-size:12px;color:var(--gray);margin-bottom:4px}
-.summary-card .amount{font-size:22px;font-weight:700;color:var(--pink)}
-.summary-card .label-hint{font-size:10px;color:#ccc;margin-left:4px}
+.summary-card{background:var(--white);border:1px solid var(--card-border);border-radius:16px;padding:14px 17px;margin-bottom:11px;box-shadow:0 1px 5px rgba(2,30,88,.05);cursor:pointer;transition:.12s;user-select:none;display:flex;align-items:center;justify-content:space-between}
+.summary-card:active{opacity:.85;transform:scale(.99)}
+.summary-card .label{font-size:11.5px;color:var(--gray);margin-bottom:5px}
+.summary-card .amount{font-size:24px;font-weight:700;color:var(--navy);letter-spacing:-.02em}
+.summary-card .label-hint{font-size:10px;color:var(--gray2);margin-left:4px}
 
 /* ───── Calendar ───── */
-.cal-wrap{background:var(--white);border-radius:16px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.07)}
-.cal-head{display:grid;grid-template-columns:repeat(7,1fr);background:var(--gray-light)}
-.cal-head span{text-align:center;padding:6px 0;font-size:11px;font-weight:700;color:var(--gray)}
-.cal-head span:first-child{color:#e05555}
+.cal-wrap{background:var(--white);border:1px solid var(--card-border);border-radius:16px;overflow:hidden;box-shadow:0 1px 5px rgba(2,30,88,.05)}
+.cal-head{display:grid;grid-template-columns:repeat(7,1fr);background:#FAFAFB}
+.cal-head span{text-align:center;padding:7px 0;font-size:10px;font-weight:700;color:var(--gray2);border-bottom:1px solid var(--card-border)}
+.cal-head span:first-child{color:#E0506A}
 .cal-head span:last-child{color:var(--blue)}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);border-top:1px solid #f0f0f0}
-.cal-cell{min-height:70px;border-bottom:1px solid #f0f0f0;border-right:1px solid #f0f0f0;padding:3px 3px 3px 4px;cursor:pointer;position:relative;overflow:hidden;transition:.12s}
-.cal-cell:hover{background:#fafafa}
-.cal-cell.empty{background:#fafafa;cursor:default}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr)}
+.cal-cell{min-height:57px;border-bottom:1px solid var(--card-border);border-right:1px solid var(--card-border);padding:4px 3px 2px;cursor:pointer;position:relative;overflow:hidden;display:flex;flex-direction:column;gap:1px;transition:.12s}
+.cal-cell:active{background:#FCFCFD}
+.cal-cell.empty{background:#FAFAFB;cursor:default}
 .cal-cell:nth-child(7n){border-right:none}
-.cal-day{font-size:12px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%}
-.cal-cell.sun .cal-day{color:#e05555}
+.cal-day{font-size:10.5px;font-weight:600;color:#2A2E3F;display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;flex-shrink:0}
+.cal-cell.sun .cal-day{color:#E0506A}
 .cal-cell.sat .cal-day{color:var(--blue)}
-.cal-cell.today .cal-day{background:var(--pink);color:#fff}
-.cal-preview{font-size:9px;color:var(--gray);line-height:1.35;margin-top:1px;overflow:hidden;max-height:46px;word-break:keep-all}
-.cal-preview .preview-amt{font-size:9px;font-weight:700;color:var(--pink)}
-.cal-preview .preview-meal{color:var(--mint);font-weight:500}
+.cal-cell.today .cal-day{background:var(--pink-btn);color:#fff;font-weight:700}
+.cal-preview{font-size:9px;color:var(--gray);line-height:1.35;overflow:hidden;max-height:44px;word-break:keep-all;display:flex;flex-direction:column;gap:1px}
+.cal-preview .preview-amt{font-size:9px;font-weight:700;color:var(--pink);padding-left:2px}
+.cal-preview .preview-meal{color:var(--blue);font-weight:500}
+.cal-preview .preview-meal.dinner{color:var(--pink)}
 .cal-preview .preview-sched{color:var(--blue)}
-.cal-preview .preview-holiday{color:#e05555;font-weight:600}
-.cal-cell.holiday .cal-day{color:#e05555}
+.cal-preview .preview-holiday{color:#E0506A;font-weight:600;padding-left:2px}
+.cal-cell.holiday .cal-day{color:#E0506A}
 
 /* ───── FAB ───── */
-.fab{position:fixed;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 16px);right:16px;width:52px;height:52px;border-radius:50%;background:var(--pink);color:#fff;border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 12px rgba(255,143,171,.5);display:flex;align-items:center;justify-content:center;z-index:90;transition:.15s}
+.fab{position:fixed;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 16px);right:16px;width:52px;height:52px;border-radius:50%;background:var(--pink-btn);color:#fff;border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 14px rgba(232,92,151,.4);display:flex;align-items:center;justify-content:center;z-index:90;transition:.15s}
 .fab:active{transform:scale(.93)}
 
 /* ───── Modal Overlay ───── */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.overlay{position:fixed;inset:0;background:rgba(2,30,88,.34);z-index:200;display:none;align-items:flex-end;justify-content:center}
 .overlay.active{display:flex}
-.sheet{background:var(--white);border-radius:20px 20px 0 0;width:100%;max-height:92vh;overflow-y:auto;padding:20px 16px 32px;animation:slideUp .25s ease}
+.sheet{background:var(--white);border-radius:24px 24px 0 0;width:100%;max-height:92vh;overflow-y:auto;padding:14px 18px 28px;box-shadow:0 -6px 24px rgba(2,30,88,.16);animation:slideUp .25s ease}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
-.sheet-handle{width:36px;height:4px;background:#ddd;border-radius:2px;margin:0 auto 16px}
-.sheet h2{font-size:17px;font-weight:700;margin-bottom:14px}
+.sheet-handle{width:38px;height:4px;background:#E2E2E7;border-radius:2px;margin:0 auto 16px}
+.sheet h2{font-size:17px;font-weight:700;color:var(--dark);margin-bottom:14px}
 .sheet h3{font-size:15px;font-weight:600;margin-bottom:8px;color:var(--gray)}
 
 /* ───── Form Elements ───── */
-.form-group{margin-bottom:14px}
-.form-group label{display:block;font-size:12px;color:var(--gray);margin-bottom:5px;font-weight:500}
-.form-group input,.form-group textarea,.form-group select{width:100%;border:1.5px solid #e0e0e0;border-radius:10px;padding:10px 12px;font-size:15px;font-family:'Noto Sans KR',sans-serif;outline:none;transition:.15s;background:var(--white)}
-.form-group input:focus,.form-group textarea:focus{border-color:var(--pink)}
+.form-group{margin-bottom:13px}
+.form-group label{display:block;font-size:11.5px;color:var(--gray);margin-bottom:6px;font-weight:500}
+.form-group input,.form-group textarea,.form-group select{width:100%;border:1.5px solid var(--outer-border);border-radius:11px;padding:11px 13px;font-size:15px;font-family:'Pretendard','Noto Sans KR',sans-serif;color:var(--dark);outline:none;transition:.15s;background:var(--white)}
+.form-group input:focus,.form-group textarea:focus{border-color:var(--pink-btn)}
 .form-group textarea{min-height:100px;resize:vertical}
 
 /* ───── Category Chips ───── */
 .cat-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
-.cat-chip{border:1.5px solid #e0e0e0;background:var(--white);border-radius:20px;padding:5px 10px;font-size:12px;cursor:pointer;transition:.15s;font-family:'Noto Sans KR',sans-serif}
-.cat-chip.selected{border-color:var(--pink);background:var(--pink-light);color:var(--pink);font-weight:600}
+.cat-chip{border:1.5px solid var(--outer-border);background:var(--white);color:#7A7C88;border-radius:20px;padding:6px 13px;font-size:12px;cursor:pointer;transition:.15s;font-family:'Pretendard','Noto Sans KR',sans-serif}
+.cat-chip.selected{border-color:var(--pink-btn);background:var(--pink-light);color:var(--pink);font-weight:600}
 
 /* ───── Buttons ───── */
-.btn{display:inline-flex;align-items:center;justify-content:center;border:none;border-radius:12px;padding:12px 20px;font-size:15px;font-weight:600;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:.15s;width:100%}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:none;border-radius:13px;padding:13px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Pretendard','Noto Sans KR',sans-serif;transition:.15s;width:100%}
 .btn:active{opacity:.85}
-.btn-primary{background:var(--pink);color:#fff}
+.btn-primary{background:var(--pink-btn);color:#fff}
+.btn-navy{background:var(--navy);color:#fff}
 .btn-mint{background:var(--mint);color:#fff}
 .btn-blue{background:var(--blue);color:#fff}
-.btn-gray{background:var(--gray-light);color:#555}
+.btn-gray{background:#EEEEF1;color:#6B6C78;font-weight:600}
 .btn-danger{background:#ff5a5a;color:#fff}
 .btn-sm{padding:7px 14px;font-size:13px;border-radius:8px;width:auto}
 .btn-row{display:flex;gap:8px;margin-top:14px}
@@ -152,44 +165,46 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
 .exp-edit:active{color:var(--blue)}
 
 /* ───── Todo ───── */
-.todo-input-row{display:flex;gap:8px;margin-bottom:14px}
-.todo-input-row input{flex:1;border:1.5px solid #e0e0e0;border-radius:10px;padding:10px 12px;font-size:15px;font-family:'Noto Sans KR',sans-serif;outline:none}
-.todo-input-row input:focus{border-color:var(--pink)}
-.todo-input-row button{background:var(--pink);color:#fff;border:none;border-radius:10px;padding:10px 14px;font-size:20px;cursor:pointer}
-.todo-item{display:flex;align-items:center;gap:10px;padding:11px 12px;background:var(--white);border-radius:12px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
-.todo-check{width:22px;height:22px;border-radius:50%;border:2px solid #ddd;background:var(--white);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;transition:.15s}
-.todo-check.done{background:var(--mint);border-color:var(--mint);color:#fff}
-.todo-text{flex:1;font-size:14px}
-.todo-text.done{text-decoration:line-through;color:#aaa}
+.todo-input-row{display:flex;gap:8px;margin-bottom:16px}
+.todo-input-row input{flex:1;border:1px solid var(--outer-border);border-radius:13px;padding:13px 15px;font-size:13px;font-family:'Pretendard','Noto Sans KR',sans-serif;color:var(--dark);outline:none}
+.todo-input-row input:focus{border-color:var(--pink-btn)}
+.todo-input-row button{width:46px;background:var(--pink-btn);color:#fff;border:none;border-radius:13px;font-size:22px;line-height:1;cursor:pointer}
+.todo-item{display:flex;align-items:center;gap:12px;padding:14px 15px;background:var(--white);border:1px solid var(--card-border);border-radius:14px;margin-bottom:9px;box-shadow:0 1px 3px rgba(2,30,88,.04)}
+.todo-check{width:21px;height:21px;border-radius:50%;border:2px solid #DBDBE1;background:var(--white);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;transition:.15s}
+.todo-check.done{background:var(--navy);border-color:var(--navy);color:#fff}
+.todo-item:has(.todo-text.done){background:#F9F9FA}
+.todo-text{flex:1;font-size:13.5px;color:var(--text2,#2A2E3F)}
+.todo-text.done{text-decoration:line-through;color:var(--gray2)}
 .todo-del{background:none;border:none;color:#ccc;cursor:pointer;font-size:16px;padding:4px}
-.section-divider{font-size:12px;font-weight:600;color:var(--gray);margin:12px 0 8px;padding-left:4px}
+.section-divider{font-size:11.5px;font-weight:600;color:var(--gray2);margin:18px 0 9px;padding-left:4px}
 
 /* ───── Recipes ───── */
-.recipe-card{background:var(--white);border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 5px rgba(0,0,0,.06);cursor:pointer;display:flex;align-items:center;gap:12px}
+.recipe-card{background:var(--white);border:1px solid var(--card-border);border-radius:15px;padding:13px 15px;margin-bottom:10px;box-shadow:0 1px 4px rgba(2,30,88,.05);cursor:pointer;display:flex;align-items:center;gap:13px}
 .recipe-card:active{opacity:.75}
-.recipe-card-emoji{font-size:28px;flex-shrink:0;width:44px;height:44px;background:var(--pink-light);border-radius:12px;display:flex;align-items:center;justify-content:center}
+.recipe-card-emoji{font-size:26px;flex-shrink:0;width:46px;height:46px;background:var(--pink-light);border-radius:13px;display:flex;align-items:center;justify-content:center}
 .recipe-card-body{flex:1;min-width:0}
-.recipe-title{font-size:15px;font-weight:700;margin-bottom:2px}
-.recipe-subtitle{font-size:12px;color:var(--gray);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.recipe-title{font-size:14.5px;font-weight:700;color:var(--dark);margin-bottom:3px}
+.recipe-subtitle{font-size:11.5px;color:var(--gray);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 /* Recipe view modal */
-.recipe-view-title{font-size:20px;font-weight:700;color:#333;margin-bottom:16px;line-height:1.3}
+.recipe-view-title{font-size:20px;font-weight:700;color:var(--navy);margin-bottom:16px;line-height:1.3}
 .recipe-section{margin-bottom:20px}
-.recipe-section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);margin-bottom:8px}
-.recipe-ingredients-box{background:var(--mint-light);border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.7;white-space:pre-wrap;color:#2a6b5a}
+.recipe-section-label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray2);margin-bottom:8px}
+.recipe-ingredients-box{background:var(--pink-light);border-radius:12px;padding:12px 14px;font-size:12.5px;line-height:1.7;white-space:pre-wrap;color:#B0476F}
 .recipe-steps-list{list-style:none;padding:0;margin:0}
 .recipe-steps-list li{display:flex;gap:10px;margin-bottom:10px;align-items:flex-start}
-.recipe-step-num{flex-shrink:0;width:22px;height:22px;background:var(--pink);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;margin-top:1px}
-.recipe-step-text{font-size:13px;line-height:1.6;color:#333;flex:1}
+.recipe-step-num{flex-shrink:0;width:21px;height:21px;background:var(--pink-btn);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;margin-top:1px}
+.recipe-step-text{font-size:12.5px;line-height:1.6;color:var(--text2,#2A2E3F);flex:1}
 
 /* ───── Settlement ───── */
-.settle-card{background:var(--white);border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 1px 6px rgba(0,0,0,.07)}
-.settle-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f5f5f5}
+.settle-card{background:var(--white);border:1px solid var(--card-border);border-radius:16px;padding:17px 18px;margin-bottom:12px;box-shadow:0 1px 5px rgba(2,30,88,.05)}
+.settle-card h3{font-size:13.5px;font-weight:700;color:var(--dark);margin-bottom:10px}
+.settle-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--card-border)}
 .settle-row:last-child{border-bottom:none}
 .settle-row.tappable{cursor:pointer;transition:.12s}
 .settle-row.tappable:active{background:var(--pink-light);border-radius:8px}
-.settle-row.tappable .settle-val::after{content:' ›';color:var(--gray);font-weight:400;font-size:13px}
-.settle-label{font-size:14px;color:#444}
-.settle-val{font-size:15px;font-weight:700}
+.settle-row.tappable .settle-val::after{content:' ›';color:#CBCCD4;font-weight:400;font-size:13px}
+.settle-label{font-size:13px;color:#6B6C78;display:flex;align-items:center;gap:6px}
+.settle-val{font-size:13.5px;font-weight:700;color:var(--dark)}
 .sd-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f5f5f5;font-size:13px}
 .sd-item:last-child{border-bottom:none}
 .sd-date{min-width:36px;color:var(--gray);font-size:12px}
@@ -199,9 +214,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
 .sd-formula-row{display:flex;justify-content:space-between;padding:5px 0;font-size:13px;border-bottom:1px solid #f5f5f5}
 .sd-formula-row:last-child{border-bottom:none}
 .sd-formula-row.total{font-weight:700;font-size:15px;padding-top:8px;margin-top:4px;border-top:2px solid #e8e8e8;border-bottom:none}
-.settle-result{background:var(--pink-light);border-radius:12px;padding:14px;margin-top:8px;text-align:center}
+.settle-result{background:var(--white);border:1.5px solid var(--pink-border);border-radius:16px;padding:18px;margin-top:12px;text-align:center}
 .settle-result .result-text{font-size:15px;font-weight:700;color:var(--pink);line-height:1.6}
-.settle-done-btn{margin-top:10px}
+.settle-done-btn{margin-top:12px}
 .settled-badge{display:inline-block;background:var(--mint);color:#fff;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:600}
 
 /* ───── Category Breakdown ───── */
@@ -218,7 +233,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
 /* ───── Setup Screen ───── */
 #setup-screen{position:fixed;inset:0;background:linear-gradient(135deg,var(--pink-light) 0%,var(--blue-light) 100%);display:flex;align-items:center;justify-content:center;z-index:500;padding:24px}
 .setup-box{background:var(--white);border-radius:24px;padding:28px 20px;width:100%;max-width:400px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.12)}
-.setup-box h2{font-size:24px;font-weight:700;margin-bottom:8px}
+.setup-box h2{font-size:24px;font-weight:700;color:var(--navy);margin-bottom:8px}
 .setup-box p{font-size:14px;color:var(--gray);margin-bottom:24px;line-height:1.6}
 .setup-box .emoji-big{font-size:48px;margin-bottom:12px}
 
@@ -232,25 +247,27 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
 /* ───── PC Responsive ≥768px ───── */
 @media (min-width:768px){
   /* Sidebar nav */
-  #nav{top:0;bottom:0;left:0;right:auto;width:200px;height:auto;flex-direction:column;justify-content:flex-start;padding-top:var(--header-h);box-shadow:1px 0 8px rgba(0,0,0,.08)}
-  #nav-buttons{flex-direction:column;height:auto;width:100%}
+  #nav{top:0;bottom:0;left:0;right:auto;width:230px;height:auto;flex-direction:column;justify-content:flex-start;padding:calc(var(--header-h) + 12px) 16px 16px;border-top:none;border-right:1px solid var(--card-border)}
+  #nav-buttons{flex-direction:column;height:auto;width:100%;gap:4px;padding:0}
   #nav-safe{display:none}
-  .nav-btn{flex-direction:row;justify-content:flex-start;gap:12px;padding:14px 20px;font-size:14px;width:100%}
-  .nav-btn .nav-icon{font-size:20px}
-  .nav-btn.active{background:var(--pink-light);color:var(--pink)}
+  .nav-btn{flex-direction:row;justify-content:flex-start;gap:12px;padding:12px 16px;font-size:14px;font-weight:500;width:100%;border-radius:12px}
+  .nav-btn .nav-icon svg{width:20px;height:20px}
+  .nav-btn.active{background:var(--pink-light);color:var(--pink);font-weight:700}
 
   /* Header + content offset */
-  #header{padding-left:216px}
-  #page-area{margin-left:200px;padding-bottom:20px}
-  .page{max-width:880px}
+  #header{padding-left:250px}
+  #page-area{margin-left:230px;padding:26px 32px 32px}
+  .page{max-width:880px;padding:0}
 
   /* FAB */
   .fab{bottom:28px;right:28px}
 
   /* Bigger calendar cells */
-  .cal-cell{min-height:88px}
-  .cal-preview{font-size:11px;max-height:54px}
-  .cal-day{width:28px;height:28px;font-size:13px}
+  .cal-cell{min-height:92px;padding:7px 7px 4px;gap:3px}
+  .cal-head span{font-size:12px;padding:10px 0}
+  .cal-preview{font-size:11px;max-height:60px}
+  .cal-day{width:25px;height:25px;font-size:13px}
+  .cal-preview .preview-amt{font-size:11.5px}
 
   /* Centered dialog modals */
   .overlay{align-items:center}
@@ -265,10 +282,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
 }
 
 @media (min-width:1100px){
-  #nav{width:220px}
-  #header{padding-left:236px}
-  #page-area{margin-left:220px}
-  .page{max-width:960px}
+  .page{max-width:1000px}
 }
 </style>
 </head>
@@ -277,7 +291,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
 <!-- Setup Screen -->
 <div id="setup-screen">
   <div class="setup-box">
-    <div class="emoji-big">🐭🐱</div>
+    <div class="emoji-big" data-mascot="both" data-mascot-size="34" style="display:flex;justify-content:center"></div>
     <h2>우리 가계부</h2>
     <p>두 사람이 함께 쓰는 가계부예요.<br>먼저 Firebase 설정을 해주세요!</p>
     <button class="btn btn-primary" onclick="openSettings()">⚙️ 설정하기</button>
@@ -287,7 +301,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
 <!-- Main App -->
 <div id="app" style="display:none">
   <div id="header">
-    <h1>🐭🐱 우리 가계부</h1>
+    <h1><span data-mascot="both" data-mascot-size="23"></span>우리 가계부</h1>
     <div class="header-right">
       <button onclick="openSettings()" title="설정">⚙️</button>
     </div>
@@ -297,9 +311,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
     <!-- 가계부 -->
     <div id="page-expense" class="page active">
       <div class="sub-tabs">
-        <div class="sub-tab active" onclick="switchExpenseTab('boy',this)">🐭 주머니쥐</div>
-        <div class="sub-tab" onclick="switchExpenseTab('girl',this)">🐱 땃쥐</div>
-        <div class="sub-tab" onclick="switchExpenseTab('shared',this)">🤝 공금</div>
+        <div class="sub-tab active" onclick="switchExpenseTab('boy',this)"><span data-mascot="mouse" data-mascot-size="20"></span>주머니쥐</div>
+        <div class="sub-tab" onclick="switchExpenseTab('girl',this)"><span data-mascot="cat" data-mascot-size="20"></span>땃쥐</div>
+        <div class="sub-tab" onclick="switchExpenseTab('shared',this)">공금</div>
       </div>
       <div class="month-nav">
         <button onclick="changeExpenseMonth(-1)">‹</button>
@@ -308,8 +322,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
         <button class="today-btn" onclick="goToToday('expense')">오늘</button>
       </div>
       <div class="summary-card" onclick="openCategoryBreakdown()">
-        <div class="label">이번 달 지출 <span class="label-hint">▸ 카테고리별 보기</span></div>
-        <div class="amount" id="expense-summary">₩0</div>
+        <div>
+          <div class="label">이번 달 지출</div>
+          <div class="amount" id="expense-summary">₩0</div>
+        </div>
+        <div class="label-hint" style="display:flex;align-items:center;gap:1px">카테고리별 <span style="font-size:15px">›</span></div>
       </div>
       <div class="cal-wrap">
         <div class="cal-head">
@@ -327,6 +344,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
         <button onclick="changeMealMonth(1)">›</button>
         <button class="today-btn" onclick="goToToday('meal')">오늘</button>
       </div>
+      <div style="display:flex;gap:14px;margin:0 0 11px;padding:0 4px">
+        <span style="font-size:11px;color:var(--blue);display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:var(--blue)"></span>점심</span>
+        <span style="font-size:11px;color:var(--pink);display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:var(--pink-btn)"></span>저녁</span>
+      </div>
       <div class="cal-wrap">
         <div class="cal-head">
           <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
@@ -342,6 +363,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
         <span id="schedule-month-label" onclick="openMonthPicker('schedule')"></span>
         <button onclick="changeScheduleMonth(1)">›</button>
         <button class="today-btn" onclick="goToToday('schedule')">오늘</button>
+      </div>
+      <div style="display:flex;gap:12px;margin:0 0 11px;padding:0 4px">
+        <span style="font-size:11px;color:#3A5BA0;display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:#3A5BA0"></span>주머니쥐</span>
+        <span style="font-size:11px;color:#C04A82;display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:#FF8FBE"></span>땃쥐</span>
+        <span style="font-size:11px;color:#7A5C95;display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:#9B7BB0"></span>함께</span>
       </div>
       <div class="cal-wrap">
         <div class="cal-head">
@@ -388,22 +414,22 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
   <nav id="nav">
     <div id="nav-buttons">
       <button class="nav-btn active" onclick="switchPage('expense',this)">
-        <span class="nav-icon">💰</span>가계부
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="3.5"></rect><path d="M3 9.5h18"></path><circle cx="16.5" cy="13.5" r="1.1" fill="currentColor" stroke="none"></circle></svg></span>가계부
       </button>
       <button class="nav-btn" onclick="switchPage('meal',this)">
-        <span class="nav-icon">🍽️</span>급식표
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5h16a8 8 0 0 1-16 0Z"></path><path d="M19.5 6.2c-1.1.2-1.9 1-1.9 2.3"></path></svg></span>급식표
       </button>
       <button class="nav-btn" onclick="switchPage('schedule',this)">
-        <span class="nav-icon">📅</span>일정표
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"></rect><path d="M3.5 9.5h17"></path><path d="M8 2.8v4M16 2.8v4"></path></svg></span>일정표
       </button>
       <button class="nav-btn" onclick="switchPage('todo',this)">
-        <span class="nav-icon">✅</span>할 일
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"></circle><path d="M8.4 12.3l2.5 2.4 4.7-5.1"></path></svg></span>할 일
       </button>
       <button class="nav-btn" onclick="switchPage('recipe',this)">
-        <span class="nav-icon">📖</span>레시피
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.2C10.3 5 7.8 4.5 5.2 4.8v12.4c2.6-.3 5.1.2 6.8 1.4 1.7-1.2 4.2-1.7 6.8-1.4V4.8C16.2 4.5 13.7 5 12 6.2Z"></path><path d="M12 6.2v12.8"></path></svg></span>레시피
       </button>
       <button class="nav-btn" onclick="switchPage('settle',this)">
-        <span class="nav-icon">🤝</span>정산
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9h12l-2.6-2.6"></path><path d="M18 15H6l2.6 2.6"></path></svg></span>정산
       </button>
     </div>
     <div id="nav-safe"></div>
@@ -495,20 +521,20 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
     <div class="form-group">
       <label>카테고리</label>
       <div class="cat-chips" id="cat-chips">
-        <div class="cat-chip selected" data-cat="식비" onclick="selectCat(this)">🍽️ 식비</div>
-        <div class="cat-chip" data-cat="교통" onclick="selectCat(this)">🚇 교통</div>
-        <div class="cat-chip" data-cat="쇼핑" onclick="selectCat(this)">🛍️ 쇼핑</div>
-        <div class="cat-chip" data-cat="의료" onclick="selectCat(this)">💊 의료</div>
-        <div class="cat-chip" data-cat="구독" onclick="selectCat(this)">📱 구독</div>
-        <div class="cat-chip" data-cat="여가" onclick="selectCat(this)">🎮 여가</div>
-        <div class="cat-chip" data-cat="생활비" onclick="selectCat(this)">🏠 생활비</div>
-        <div class="cat-chip" data-cat="선물" onclick="selectCat(this)">🎁 선물</div>
-        <div class="cat-chip" data-cat="쿠팡카드" onclick="selectCat(this)">💳 쿠팡카드</div>
-        <div class="cat-chip" data-cat="공금지출" onclick="selectCat(this)">🤝 공금지출</div>
-        <div class="cat-chip" data-cat="땃쥐대신" onclick="selectCat(this)">🐱 땃쥐대신</div>
-        <div class="cat-chip" data-cat="미용/화장품" onclick="selectCat(this)">💄 미용/화장품</div>
-        <div class="cat-chip" data-cat="통신비" onclick="selectCat(this)">📡 통신비</div>
-        <div class="cat-chip" data-cat="기타" onclick="selectCat(this)">📦 기타</div>
+        <div class="cat-chip selected" data-cat="식비" onclick="selectCat(this)">식비</div>
+        <div class="cat-chip" data-cat="교통" onclick="selectCat(this)">교통</div>
+        <div class="cat-chip" data-cat="쇼핑" onclick="selectCat(this)">쇼핑</div>
+        <div class="cat-chip" data-cat="의료" onclick="selectCat(this)">의료</div>
+        <div class="cat-chip" data-cat="구독" onclick="selectCat(this)">구독</div>
+        <div class="cat-chip" data-cat="여가" onclick="selectCat(this)">여가</div>
+        <div class="cat-chip" data-cat="생활비" onclick="selectCat(this)">생활비</div>
+        <div class="cat-chip" data-cat="선물" onclick="selectCat(this)">선물</div>
+        <div class="cat-chip" data-cat="쿠팡카드" onclick="selectCat(this)">쿠팡카드</div>
+        <div class="cat-chip" data-cat="공금지출" onclick="selectCat(this)">공금지출</div>
+        <div class="cat-chip" data-cat="땃쥐대신" onclick="selectCat(this)">땃쥐대신</div>
+        <div class="cat-chip" data-cat="미용/화장품" onclick="selectCat(this)">미용/화장품</div>
+        <div class="cat-chip" data-cat="통신비" onclick="selectCat(this)">통신비</div>
+        <div class="cat-chip" data-cat="기타" onclick="selectCat(this)">기타</div>
       </div>
     </div>
     <div class="btn-row">
@@ -551,8 +577,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
       <label>누구</label>
       <div class="sub-tabs" style="margin-bottom:0">
         <div class="sub-tab active" id="sched-who-none" onclick="selectSchedWho('')">전체</div>
-        <div class="sub-tab" id="sched-who-boy" onclick="selectSchedWho('boy')">🐭 주머니쥐</div>
-        <div class="sub-tab" id="sched-who-girl" onclick="selectSchedWho('girl')">🐱 땃쥐</div>
+        <div class="sub-tab" id="sched-who-boy" onclick="selectSchedWho('boy')"><span data-mascot="mouse" data-mascot-size="20"></span>주머니쥐</div>
+        <div class="sub-tab" id="sched-who-girl" onclick="selectSchedWho('girl')"><span data-mascot="cat" data-mascot-size="20"></span>땃쥐</div>
       </div>
     </div>
     <div class="form-group">
@@ -647,13 +673,12 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
   </div>
 </div>
 
-
 <!-- Settle Detail -->
 <div class="overlay" id="settle-detail-overlay" onclick="overlayClickClose(event,'settle-detail-overlay')">
   <div class="sheet">
     <div class="sheet-handle" onclick="closeModal('settle-detail-overlay')" style="cursor:pointer;padding:4px 0"></div>
     <div style="display:flex;align-items:center;justify-content:space-between">
-      <h2 id="settle-detail-title" style="margin-bottom:0"></h2>
+      <h2 id="settle-detail-title" style="margin-bottom:0;display:flex;align-items:center;gap:6px"></h2>
       <button onclick="closeModal('settle-detail-overlay')" style="background:none;border:none;font-size:22px;color:#bbb;cursor:pointer;padding:4px;line-height:1">✕</button>
     </div>
     <div id="settle-detail-body" style="max-height:58vh;overflow-y:auto;margin-top:10px"></div>
@@ -672,6 +697,27 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);color:#333;mi
 // ══════════════════════════════════════════════
 const STORAGE_KEY = 'hh-fb-config';
 const CAT_ICONS = {식비:'🍽️',교통:'🚇',쇼핑:'🛍️',의료:'💊',구독:'📱',여가:'🎮',생활비:'🏠',선물:'🎁',쿠팡카드:'💳',공금지출:'🤝',땃쥐대신:'🐱','미용/화장품':'💄',통신비:'📡',기타:'📦'};
+
+// ══════════════════════════════════════════════
+//  Mascots (SVG — replaces 🐭🐱 emojis)
+// ══════════════════════════════════════════════
+function mascotMouse(s){return `<svg viewBox="0 0 32 32" width="${s}" height="${s}" fill="none"><ellipse cx="9.4" cy="9.2" rx="4.3" ry="4.6" fill="#B9C4DC"/><ellipse cx="22.6" cy="9.2" rx="4.3" ry="4.6" fill="#B9C4DC"/><ellipse cx="9.4" cy="9.4" rx="2.3" ry="2.6" fill="#E6EBF4"/><ellipse cx="22.6" cy="9.4" rx="2.3" ry="2.6" fill="#E6EBF4"/><path d="M16 9.6C21.2 9.3 25.6 13 25.5 18.4C25.4 23.8 21.2 27.7 15.9 27.5C10.8 27.3 6.7 23.4 6.8 18.1C6.9 13 11.1 9.9 16 9.6Z" fill="#CED7E8"/><circle cx="12.4" cy="17.8" r="1.15" fill="#021E58"/><circle cx="19.6" cy="17.8" r="1.15" fill="#021E58"/><ellipse cx="16" cy="21" rx="1.5" ry="1.15" fill="#E85C97"/></svg>`;}
+function mascotCat(s){return `<svg viewBox="0 0 32 32" width="${s}" height="${s}" fill="none"><path d="M7.4 9.2C7 11 7.3 12.6 8.4 14L13.8 11.5C11.4 9.9 9.4 9.1 7.4 9.2Z" fill="#FBB6D0"/><path d="M24.6 9.2C25 11 24.7 12.6 23.6 14L18.2 11.5C20.6 9.9 22.6 9.1 24.6 9.2Z" fill="#FBB6D0"/><path d="M16 9.8C21.3 9.5 25.6 13.2 25.5 18.5C25.4 23.8 21.2 27.7 16 27.6C10.8 27.5 6.7 23.5 6.8 18.4C6.8 13.3 11.1 10.1 16 9.8Z" fill="#FFCFE3"/><circle cx="12.4" cy="17.8" r="1.15" fill="#021E58"/><circle cx="19.6" cy="17.8" r="1.15" fill="#021E58"/><path d="M16 19.6L17.1 21.1H14.9L16 19.6Z" fill="#E85C97"/><g stroke="#021E58" stroke-width="0.55" stroke-linecap="round"><path d="M12.8 20.5L8.2 19.6"/><path d="M12.8 21.4L8.5 22.4"/><path d="M19.2 20.5L23.8 19.6"/><path d="M19.2 21.4L23.5 22.4"/></g></svg>`;}
+// kind: 'mouse' | 'cat' | 'both'. Returns an inline-flex span with the mascot SVG(s).
+function mascot(kind, size){
+  const s = size || 20;
+  if (kind === 'mouse') return `<span class="mascot">${mascotMouse(s)}</span>`;
+  if (kind === 'cat')   return `<span class="mascot">${mascotCat(s+2)}</span>`;
+  return `<span class="mascot">${mascotMouse(s)}<span style="display:inline-flex;margin-left:-9px">${mascotCat(s+2)}</span></span>`;
+}
+// Fill all static [data-mascot] placeholders.
+function renderMascots(){
+  document.querySelectorAll('[data-mascot]').forEach(el => {
+    if (el.dataset.mascotDone) return;
+    el.innerHTML = mascot(el.dataset.mascot, parseInt(el.dataset.mascotSize) || 20);
+    el.dataset.mascotDone = '1';
+  });
+}
 
 // 한국 공휴일
 const HOLIDAYS = (() => {
@@ -761,6 +807,7 @@ function settleMonthFor(now) {
 }
 
 function init() {
+  renderMascots();
   const now = new Date();
   expenseYear = mealYear = scheduleYear = now.getFullYear();
   expenseMonth = mealMonth = scheduleMonth = now.getMonth() + 1;
@@ -1086,7 +1133,7 @@ function renderExpenseCal() {
       const dayTotal = arr.reduce((s,i) => s + Number(i.amount||0), 0);
       parts.push(`<span class="preview-amt">${fmt(dayTotal)}</span>`);
     }
-    return parts.join('<br>');
+    return parts.join('');
   }, 'onExpenseDayClick', (d) => HOLIDAYS[hKeyE(d)] ? 'holiday' : '');
 }
 
@@ -1242,10 +1289,10 @@ function renderMealCal() {
     if (m) {
       const lunch = typeof m === 'string' ? m : (m.lunch || '');
       const dinner = typeof m === 'string' ? '' : (m.dinner || '');
-      if (lunch) parts.push(`<span class="preview-meal" style="font-size:8px">🌞${escHtml(lunch)}</span>`);
-      if (dinner) parts.push(`<span class="preview-meal" style="font-size:8px">🌙${escHtml(dinner)}</span>`);
+      if (lunch) parts.push(`<span class="preview-meal" style="font-size:8.5px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${escHtml(lunch)}</span>`);
+      if (dinner) parts.push(`<span class="preview-meal dinner" style="font-size:8.5px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${escHtml(dinner)}</span>`);
     }
-    return parts.join('<br>');
+    return parts.join('');
   }, 'onMealDayClick', (d) => HOLIDAYS[hKeyM(d)] ? 'holiday' : '');
 }
 
@@ -1300,11 +1347,12 @@ function renderScheduleCal() {
     const arr = Object.values(items);
     const parts = [];
     if (holiday) parts.push(`<span class="preview-holiday">${escHtml(holiday)}</span>`);
+    const SST = { boy:'background:#E4E7F0;color:#2A407F', girl:'background:#FFD9E8;color:#C04A82', both:'background:#ECE4F2;color:#7A5C95' };
     arr.slice(0, 2).forEach(i => {
-      const who = i.who === 'boy' ? '🐭' : i.who === 'girl' ? '🐱' : '🐭🐱';
-      parts.push(`<span class="preview-sched">${who} ${escHtml(i.title||'')}</span>`);
+      const style = SST[i.who] || SST.both;
+      parts.push(`<span style="${style};font-size:8.5px;padding:1px 4px;border-radius:5px;line-height:1.4;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%">${escHtml(i.title||'')}</span>`);
     });
-    return parts.join('<br>');
+    return parts.join('');
   }, 'onScheduleDayClick', (d) => HOLIDAYS[hKey(d)] ? 'holiday' : '');
 }
 
@@ -1328,11 +1376,11 @@ function onScheduleDayClick(event, d) {
     list.innerHTML = '<div class="empty-msg">일정이 없어요</div>';
   } else {
     list.innerHTML = arr.map(([id, item]) => {
-      const who = item.who === 'boy' ? '🐭 ' : item.who === 'girl' ? '🐱 ' : '🐭🐱 ';
+      const who = item.who === 'boy' ? mascot('mouse',20) : item.who === 'girl' ? mascot('cat',20) : mascot('both',20);
       return `
       <div class="exp-item">
-        <div class="exp-cat-icon">📌</div>
-        <div class="exp-info"><div class="exp-desc">${who}${escHtml(item.title||'')}</div></div>
+        <div class="exp-cat-icon" style="display:flex;align-items:center">${who}</div>
+        <div class="exp-info"><div class="exp-desc">${escHtml(item.title||'')}</div></div>
         <button class="exp-edit" onclick="openScheduleMove('${dayStr}','${id}')" title="이동">➡️</button>
         <button class="exp-edit" onclick="openScheduleEdit('${dayStr}','${id}')">✏️</button>
         <button class="exp-del" onclick="deleteSchedule('${dayStr}','${id}')">✕</button>
@@ -1396,8 +1444,7 @@ function openScheduleMove(dayStr, id) {
   const item = ((appData.schedule || {})[key] || {})[dayStr]?.[id] || {};
   movingScheduleDayStr = dayStr;
   movingScheduleId = id;
-  const who = item.who === 'boy' ? '🐭 ' : item.who === 'girl' ? '🐱 ' : '🐭🐱 ';
-  document.getElementById('sched-move-title').textContent = who + (item.title || '');
+  document.getElementById('sched-move-title').textContent = item.title || '';
   const dateStr = `${scheduleYear}-${String(scheduleMonth).padStart(2,'0')}-${dayStr}`;
   document.getElementById('sched-move-date').value = dateStr;
   openModal('sched-move-overlay');
@@ -1717,6 +1764,9 @@ function renderSettle() {
 
   function tappable(type) { return `class="settle-row tappable" onclick="openSettleDetail('${type}')" `; }
 
+  const MM = mascot('mouse',20), MC = mascot('cat',20);
+  const wrap = (s) => `<span style="display:inline-flex;align-items:center;gap:4px">${s}</span>`;
+
   function sharedPayRow(who, amt, type) {
     const cls = `class="settle-row tappable" onclick="openSettleDetail('${type}')" `;
     if (amt > 0) return `<div ${cls}><span class="settle-label">${who} 납부</span><span class="settle-val">${fmt(amt)}</span></div>`;
@@ -1725,44 +1775,44 @@ function renderSettle() {
   }
 
   document.getElementById('settle-content').innerHTML = `
-  <div style="font-size:12px;color:var(--gray);text-align:center;margin-bottom:8px">📅 정산 기간: ${prevYear !== settleYear ? `${prevYear}.` : ''}${prevMonth}.10 ~ ${settleMonth}.9</div>
+  <div style="font-size:12px;color:var(--gray);text-align:center;margin-bottom:10px">정산 기간 · ${prevYear !== settleYear ? `${prevYear}.` : ''}${prevMonth}.10 ~ ${settleMonth}.9</div>
   <div class="settle-card">
     <h3>지출 내역</h3>
-    <div ${tappable('boy-total')}><span class="settle-label">🐭 주머니쥐</span><span class="settle-val">${fmt(boyTotal)}</span></div>
-    ${boyPublicCat > 0 ? `<div ${tappable('boy-public')}><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 🤝 공금 선결제</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(boyPublicCat)}</span></div>` : ''}
-    ${boyForGirlAmt > 0 ? `<div ${tappable('boy-for-girl')}><span class="settle-label" style="font-size:12px;color:var(--pink);padding-left:12px">└ 🐱 땃쥐 대신 납부</span><span class="settle-val" style="font-size:13px;color:var(--pink)">${fmt(boyForGirlAmt)}</span></div>` : ''}
-    <div ${tappable('girl-total')}><span class="settle-label">🐱 땃쥐</span><span class="settle-val">${fmt(girlTotal)}</span></div>
-    ${girlPublicCat > 0 ? `<div ${tappable('girl-public')}><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 🤝 공금 선결제</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(girlPublicCat)}</span></div>` : ''}
-    <div ${tappable('shared-total')}><span class="settle-label">🤝 공금 탭</span><span class="settle-val">${fmt(sharedTotal)}</span></div>
-    ${saboy2  > 0 ? `<div ${tappable('saboy')}><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 🏠 월세 (주머니쥐 담당)</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(saboy2)}</span></div>` : ''}
-    ${sagirl2 > 0 ? `<div ${tappable('sagirl')}><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 💡 관리비·공과금 (땃쥐 담당)</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(sagirl2)}</span></div>` : ''}
+    <div ${tappable('boy-total')}><span class="settle-label">${MM} 주머니쥐</span><span class="settle-val">${fmt(boyTotal)}</span></div>
+    ${boyPublicCat > 0 ? `<div ${tappable('boy-public')}><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 공금 선결제</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(boyPublicCat)}</span></div>` : ''}
+    ${boyForGirlAmt > 0 ? `<div ${tappable('boy-for-girl')}><span class="settle-label" style="font-size:12px;color:var(--pink);padding-left:12px">└ ${wrap(MC+'땃쥐 대신 납부')}</span><span class="settle-val" style="font-size:13px;color:var(--pink)">${fmt(boyForGirlAmt)}</span></div>` : ''}
+    <div ${tappable('girl-total')}><span class="settle-label">${MC} 땃쥐</span><span class="settle-val">${fmt(girlTotal)}</span></div>
+    ${girlPublicCat > 0 ? `<div ${tappable('girl-public')}><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 공금 선결제</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(girlPublicCat)}</span></div>` : ''}
+    <div ${tappable('shared-total')}><span class="settle-label">공금 탭</span><span class="settle-val">${fmt(sharedTotal)}</span></div>
+    ${saboy2  > 0 ? `<div ${tappable('saboy')}><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 월세 (주머니쥐 담당)</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(saboy2)}</span></div>` : ''}
+    ${sagirl2 > 0 ? `<div ${tappable('sagirl')}><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 관리비·공과금 (땃쥐 담당)</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(sagirl2)}</span></div>` : ''}
     ${sacommon > 0 ? `<div ${tappable('sacommon')}><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 공동 (50:50)</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(sacommon)}</span></div>` : ''}
   </div>
   <div class="settle-card">
-    <h3>🏠 공금 분담</h3>
-    ${sharedPayRow('🐭 주머니쥐', boySharedExtra, 'boy-shared-formula')}
-    ${sharedPayRow('🐱 땃쥐',    girlSharedExtra, 'girl-shared-formula')}
+    <h3>공금 분담</h3>
+    ${sharedPayRow(MM+'주머니쥐', boySharedExtra, 'boy-shared-formula')}
+    ${sharedPayRow(MC+'땃쥐',    girlSharedExtra, 'girl-shared-formula')}
   </div>
   <div class="settle-card">
-    <h3>💳 개인 지출 내역 <span style="font-size:11px;color:var(--gray);font-weight:400">(각자 부담, 정산 없음)</span></h3>
-    <div ${tappable('boy-personal')}><span class="settle-label">🐭 주머니쥐</span><span class="settle-val" style="color:var(--gray)">${fmt(boyPersonal)}</span></div>
-    ${boyCoupangExp > 0 ? `<div ${tappable('boy-coupang-exp')}><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 💳 쿠팡카드 사용</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(boyCoupangExp)}</span></div>` : ''}
-    <div ${tappable('girl-personal')}><span class="settle-label">🐱 땃쥐</span><span class="settle-val" style="color:var(--gray)">${fmt(girlPersonal)}</span></div>
-    ${girlCoupangExp > 0 ? `<div ${tappable('girl-coupang-exp')}><span class="settle-label" style="font-size:12px;color:var(--pink);padding-left:12px">└ 💳 쿠팡카드 → 주머니쥐 별도 이체</span><span class="settle-val" style="font-size:13px;color:var(--pink)">${fmt(girlCoupangExp)}</span></div>` : ''}
+    <h3>개인 지출 내역 <span style="font-size:11px;color:var(--gray);font-weight:400">(각자 부담, 정산 없음)</span></h3>
+    <div ${tappable('boy-personal')}><span class="settle-label">${MM} 주머니쥐</span><span class="settle-val" style="color:var(--gray)">${fmt(boyPersonal)}</span></div>
+    ${boyCoupangExp > 0 ? `<div ${tappable('boy-coupang-exp')}><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 쿠팡카드 사용</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(boyCoupangExp)}</span></div>` : ''}
+    <div ${tappable('girl-personal')}><span class="settle-label">${MC} 땃쥐</span><span class="settle-val" style="color:var(--gray)">${fmt(girlPersonal)}</span></div>
+    ${girlCoupangExp > 0 ? `<div ${tappable('girl-coupang-exp')}><span class="settle-label" style="font-size:12px;color:var(--pink);padding-left:12px">└ 쿠팡카드 → 주머니쥐 별도 이체</span><span class="settle-val" style="font-size:13px;color:var(--pink)">${fmt(girlCoupangExp)}</span></div>` : ''}
   </div>
   <div class="settle-card">
-    <h3>📋 당월 정산 기록</h3>
-    ${boySharedExtra > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px">🐭 주머니쥐 → 공금 계좌</span><span class="settle-val">${fmt(boySharedExtra)}</span></div>` : boySharedExtra < 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px;color:var(--blue)">🐱 땃쥐 → 🐭 주머니쥐 (공금 과납 환급)</span><span class="settle-val" style="color:var(--blue)">${fmt(-boySharedExtra)}</span></div>` : ''}
-    ${girlSharedExtra > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px">🐱 땃쥐 → 공금 계좌</span><span class="settle-val">${fmt(girlSharedExtra)}</span></div>` : girlSharedExtra < 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px;color:var(--blue)">🐭 주머니쥐 → 🐱 땃쥐 (공금 과납 환급)</span><span class="settle-val" style="color:var(--blue)">${fmt(-girlSharedExtra)}</span></div>` : ''}
-    ${boyForGirlAmt > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px">🐱 땃쥐 → 🐭 주머니쥐 (대신 납부)</span><span class="settle-val" style="color:var(--pink)">${fmt(boyForGirlAmt)}</span></div>` : ''}
-    ${girlCoupangExp > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px">🐱 땃쥐 → 🐭 주머니쥐 (쿠팡카드)</span><span class="settle-val" style="color:var(--pink)">${fmt(girlCoupangExp)}</span></div>` : ''}
-    ${girlToBoyTotal > 0 ? `<div class="settle-row" style="border-top:2px solid #ffe0e8;margin-top:4px;padding-top:8px"><span class="settle-label" style="font-size:13px;font-weight:700;color:var(--pink)">🐱 땃쥐 → 🐭 주머니쥐 총 이체액</span><span class="settle-val" style="color:var(--pink);font-size:16px;font-weight:700">${fmt(girlToBoyTotal)}</span></div>` : girlToBoyTotal < 0 ? `<div class="settle-row" style="border-top:2px solid #e0ecff;margin-top:4px;padding-top:8px"><span class="settle-label" style="font-size:13px;font-weight:700;color:var(--blue)">🐭 주머니쥐 → 🐱 땃쥐 총 이체액</span><span class="settle-val" style="color:var(--blue);font-size:16px;font-weight:700">${fmt(-girlToBoyTotal)}</span></div>` : ''}
+    <h3>당월 정산 기록</h3>
+    ${boySharedExtra > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px">${wrap(MM+'주머니쥐 → 공금 계좌')}</span><span class="settle-val">${fmt(boySharedExtra)}</span></div>` : boySharedExtra < 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px;color:var(--blue)">${wrap(MC+'땃쥐 → '+MM+'주머니쥐 (공금 과납 환급)')}</span><span class="settle-val" style="color:var(--blue)">${fmt(-boySharedExtra)}</span></div>` : ''}
+    ${girlSharedExtra > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px">${wrap(MC+'땃쥐 → 공금 계좌')}</span><span class="settle-val">${fmt(girlSharedExtra)}</span></div>` : girlSharedExtra < 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px;color:var(--blue)">${wrap(MM+'주머니쥐 → '+MC+'땃쥐 (공금 과납 환급)')}</span><span class="settle-val" style="color:var(--blue)">${fmt(-girlSharedExtra)}</span></div>` : ''}
+    ${boyForGirlAmt > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px">${wrap(MC+'땃쥐 → '+MM+'주머니쥐 (대신 납부)')}</span><span class="settle-val" style="color:var(--pink)">${fmt(boyForGirlAmt)}</span></div>` : ''}
+    ${girlCoupangExp > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px">${wrap(MC+'땃쥐 → '+MM+'주머니쥐 (쿠팡카드)')}</span><span class="settle-val" style="color:var(--pink)">${fmt(girlCoupangExp)}</span></div>` : ''}
+    ${girlToBoyTotal > 0 ? `<div class="settle-row" style="border-top:2px solid var(--pink-border);margin-top:4px;padding-top:8px"><span class="settle-label" style="font-size:13px;font-weight:700;color:var(--pink)">${wrap(MC+'땃쥐 → '+MM+'주머니쥐 총 이체액')}</span><span class="settle-val" style="color:var(--pink);font-size:16px;font-weight:700">${fmt(girlToBoyTotal)}</span></div>` : girlToBoyTotal < 0 ? `<div class="settle-row" style="border-top:2px solid #DCE6F7;margin-top:4px;padding-top:8px"><span class="settle-label" style="font-size:13px;font-weight:700;color:var(--blue)">${wrap(MM+'주머니쥐 → '+MC+'땃쥐 총 이체액')}</span><span class="settle-val" style="color:var(--blue);font-size:16px;font-weight:700">${fmt(-girlToBoyTotal)}</span></div>` : ''}
   </div>
   <div class="settle-done-btn">
     ${settled
       ? `<div style="text-align:center;padding:8px"><span class="settled-badge">✓ 정산 완료</span></div>
          <button class="btn btn-gray" onclick="toggleSettle(false)">정산 취소</button>`
-      : `<button class="btn btn-mint" onclick="toggleSettle(true)">✅ 정산 완료</button>`
+      : `<button class="btn btn-navy" onclick="toggleSettle(true)">정산 완료하기</button>`
     }
   </div>
 `;
@@ -1797,26 +1847,26 @@ function openSettleDetail(type) {
 
   switch(type) {
     case 'boy-total':
-      title = '🐭 주머니쥐 지출 내역';
+      title = mascot('mouse',18)+'주머니쥐 지출 내역';
       body = itemRows(c.boyItems);
       break;
     case 'girl-total':
-      title = '🐱 땃쥐 지출 내역';
+      title = mascot('cat',18)+'땃쥐 지출 내역';
       body = itemRows(c.girlItems);
       break;
     case 'boy-public':
-      title = '🐭 주머니쥐 공금 선결제';
+      title = mascot('mouse',18)+'주머니쥐 공금 선결제';
       body = itemRows(c.boyPublicItems);
       if (c.boyPublicGirlItems.length) {
         body += `<div style="margin-top:10px;padding:8px 10px;background:var(--pink-light);border-radius:10px;font-size:12px;color:var(--pink)">💡 이 중 <b>${fmt(c.boyPublicGirlItems.reduce((s,i)=>s+Number(i.amount||0),0))}</b>는 땃쥐 부담 항목(전기세/가스비 등)으로 땃쥐의 공금 분담에 포함됩니다.</div>`;
       }
       break;
     case 'girl-public':
-      title = '🐱 땃쥐 공금 선결제';
+      title = mascot('cat',18)+'땃쥐 공금 선결제';
       body = itemRows(c.girlPublicItems);
       break;
     case 'shared-total':
-      title = '🤝 공금 탭 전체 내역';
+      title = '공금 탭 전체 내역';
       body = itemRows(c.sharedItems);
       break;
     case 'saboy':
@@ -1828,19 +1878,19 @@ function openSettleDetail(type) {
       body = `<div style="font-size:12px;color:var(--gray);margin-bottom:8px">공금 탭의 관리비·공과금 + 주머니쥐가 선결제한 유틸리티</div>` + itemRows(c.sagirlItems);
       break;
     case 'sacommon':
-      title = '🤝 공동 지출 (50:50)';
+      title = '공동 지출 (50:50)';
       body = itemRows(c.sacommonItems);
       break;
     case 'boy-personal':
-      title = '🐭 주머니쥐 개인 지출';
+      title = mascot('mouse',18)+'주머니쥐 개인 지출';
       body = itemRows(c.boyItems.filter(i => i.cat !== '공금지출' && i.cat !== '쿠팡카드' && i.cat !== '땃쥐대신'));
       break;
     case 'girl-personal':
-      title = '🐱 땃쥐 개인 지출';
+      title = mascot('cat',18)+'땃쥐 개인 지출';
       body = itemRows(c.girlItems.filter(i => i.cat !== '공금지출' && i.cat !== '쿠팡카드'));
       break;
     case 'boy-shared-formula':
-      title = '🐭 주머니쥐 공금 분담 계산';
+      title = mascot('mouse',18)+'주머니쥐 공금 분담 계산';
       body = formulaRows([
         ['🏠 월세 등 (주머니쥐 담당)', c.saboy, '#444'],
         [`🤝 공동지출 절반 (${fmt(c.totalCommon)}의 1/2)`, c.commonEach, '#444'],
@@ -1851,7 +1901,7 @@ function openSettleDetail(type) {
       }
       break;
     case 'girl-shared-formula':
-      title = '🐱 땃쥐 공금 분담 계산';
+      title = mascot('cat',18)+'땃쥐 공금 분담 계산';
       body = formulaRows([
         ['💡 관리비·공과금 (땃쥐 담당)', c.sagirl, '#444'],
         [`🤝 공동지출 절반 (${fmt(c.totalCommon)}의 1/2)`, c.commonEach, '#444'],
@@ -1859,22 +1909,22 @@ function openSettleDetail(type) {
       ], c.girlSharedExtra);
       break;
     case 'boy-for-girl':
-      title = '🐱 땃쥐 대신 납부 내역';
+      title = mascot('cat',18)+'땃쥐 대신 납부 내역';
       body = `<div style="font-size:12px;padding:8px 10px;background:var(--pink-light);border-radius:10px;color:var(--pink);margin-bottom:8px">💡 주머니쥐가 대신 납부한 땃쥐 부담 항목입니다. 땃쥐가 주머니쥐에게 <b>${fmt(c.boyForGirlAmt)}</b> 이체해야 합니다.</div>` + itemRows(c.boyForGirlItems);
       break;
     case 'boy-coupang-exp':
-      title = '🐭 주머니쥐 쿠팡카드 사용 내역';
+      title = mascot('mouse',18)+'주머니쥐 쿠팡카드 사용 내역';
       body = `<div style="font-size:12px;color:var(--gray);margin-bottom:8px">주머니쥐 카드 계좌에서 자동 출금되는 항목</div>` + itemRows(c.boyCoupangExpItems);
       break;
     case 'girl-coupang-exp':
-      title = '🐱 땃쥐 쿠팡카드 사용 내역';
+      title = mascot('cat',18)+'땃쥐 쿠팡카드 사용 내역';
       body = `<div style="font-size:12px;padding:8px 10px;background:var(--pink-light);border-radius:10px;color:var(--pink);margin-bottom:8px">💳 주머니쥐 카드 계좌로 출금되므로 땃쥐가 주머니쥐에게 ${fmt(c.girlCoupangExp)} 이체해야 합니다.</div>` + itemRows(c.girlCoupangExpItems);
       break;
     default:
       return;
   }
 
-  document.getElementById('settle-detail-title').textContent = title;
+  document.getElementById('settle-detail-title').innerHTML = title;
   document.getElementById('settle-detail-body').innerHTML = body;
   openModal('settle-detail-overlay');
 }
@@ -1904,7 +1954,7 @@ function openCategoryBreakdown() {
     });
   });
 
-  const tabName = expenseTab === 'boy' ? '🐭 주머니쥐' : expenseTab === 'girl' ? '🐱 땃쥐' : '🤝 공금';
+  const tabName = expenseTab === 'boy' ? '주머니쥐' : expenseTab === 'girl' ? '땃쥐' : '공금';
   document.getElementById('cat-breakdown-title').textContent = `${expenseYear}년 ${expenseMonth}월 ${tabName}`;
 
   const sorted = Object.entries(catTotals).sort((a, b) => b[1] - a[1]);
