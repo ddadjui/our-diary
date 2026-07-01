@@ -585,6 +585,16 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
       <label>일정 제목</label>
       <input type="text" id="schedule-input" placeholder="일정 제목" lang="ko" inputmode="text" autocomplete="nope" autocorrect="off" spellcheck="false">
     </div>
+    <div class="form-group" id="sched-repeat-group">
+      <label>반복</label>
+      <div class="sub-tabs" style="margin-bottom:0">
+        <div class="sub-tab active" id="sched-repeat-none" onclick="selectSchedRepeat('none')">안함</div>
+        <div class="sub-tab" id="sched-repeat-daily" onclick="selectSchedRepeat('daily')">매일</div>
+        <div class="sub-tab" id="sched-repeat-weekly" onclick="selectSchedRepeat('weekly')">매주</div>
+        <div class="sub-tab" id="sched-repeat-monthly" onclick="selectSchedRepeat('monthly')">매월</div>
+        <div class="sub-tab" id="sched-repeat-yearly" onclick="selectSchedRepeat('yearly')">매년</div>
+      </div>
+    </div>
     <div class="btn-row">
       <button class="btn btn-gray" onclick="closeModal('schedule-overlay')">취소</button>
       <button class="btn btn-danger" id="sched-del-btn" style="display:none" onclick="deleteScheduleEditing()">삭제</button>
@@ -794,6 +804,7 @@ let editingMealDay = null;
 let editingExpenseId = null;
 let editingExpenseDayStr = null;
 let schedWho = '';
+let schedRepeat = 'none';
 let settleCache = null;
 
 // ══════════════════════════════════════════════
@@ -1344,13 +1355,14 @@ function renderScheduleCal() {
     const dayStr = String(d).padStart(2,'0');
     const holiday = HOLIDAYS[hKey(d)];
     const items = schedules[dayStr] || {};
-    const arr = Object.values(items);
+    const arr = Object.values(items).concat(recurItemsFor(scheduleYear, scheduleMonth, d));
     const parts = [];
     if (holiday) parts.push(`<span class="preview-holiday">${escHtml(holiday)}</span>`);
     const SST = { boy:'background:#E4E7F0;color:#2A407F', girl:'background:#FFD9E8;color:#C04A82', both:'background:#ECE4F2;color:#7A5C95' };
     arr.slice(0, 2).forEach(i => {
       const style = SST[i.who] || SST.both;
-      parts.push(`<span style="${style};font-size:8.5px;padding:1px 4px;border-radius:5px;line-height:1.4;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%">${escHtml(i.title||'')}</span>`);
+      const rep = i.repeat ? '🔁' : '';
+      parts.push(`<span style="${style};font-size:8.5px;padding:1px 4px;border-radius:5px;line-height:1.4;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%">${rep}${escHtml(i.title||'')}</span>`);
     });
     return parts.join('');
   }, 'onScheduleDayClick', (d) => HOLIDAYS[hKey(d)] ? 'holiday' : '');
@@ -1367,15 +1379,18 @@ function onScheduleDayClick(event, d) {
   document.getElementById('schedule-input').value = '';
   document.getElementById('sched-save-btn').textContent = '저장';
   document.getElementById('sched-del-btn').style.display = 'none';
+  document.getElementById('sched-repeat-group').style.display = 'block';
   editingScheduleId = null;
   selectSchedWho('');
+  selectSchedRepeat('none');
 
   const arr = Object.entries(items);
+  const recurArr = recurItemsFor(scheduleYear, scheduleMonth, d);
   const list = document.getElementById('schedule-detail-list');
-  if (!arr.length) {
+  if (!arr.length && !recurArr.length) {
     list.innerHTML = '<div class="empty-msg">일정이 없어요</div>';
   } else {
-    list.innerHTML = arr.map(([id, item]) => {
+    const normalHtml = arr.map(([id, item]) => {
       const who = item.who === 'boy' ? mascot('mouse',20) : item.who === 'girl' ? mascot('cat',20) : mascot('both',20);
       return `
       <div class="exp-item">
@@ -1386,6 +1401,16 @@ function onScheduleDayClick(event, d) {
         <button class="exp-del" onclick="deleteSchedule('${dayStr}','${id}')">✕</button>
       </div>`;
     }).join('');
+    const recurHtml = recurArr.map(item => {
+      const who = item.who === 'boy' ? mascot('mouse',20) : item.who === 'girl' ? mascot('cat',20) : mascot('both',20);
+      return `
+      <div class="exp-item">
+        <div class="exp-cat-icon" style="display:flex;align-items:center">${who}</div>
+        <div class="exp-info"><div class="exp-desc">🔁 ${escHtml(item.title||'')}<span style="font-size:11px;color:var(--gray);margin-left:5px">${REPEAT_LABEL[item.repeat]||''} 반복</span></div></div>
+        <button class="exp-del" onclick="deleteRecurring('${item.id}')" title="반복 삭제">✕</button>
+      </div>`;
+    }).join('');
+    list.innerHTML = normalHtml + recurHtml;
   }
   openModal('schedule-overlay');
 }
@@ -1397,6 +1422,39 @@ function selectSchedWho(who) {
   });
 }
 
+function selectSchedRepeat(r) {
+  schedRepeat = r;
+  ['none','daily','weekly','monthly','yearly'].forEach(x => {
+    document.getElementById(`sched-repeat-${x}`).classList.toggle('active', x === r);
+  });
+}
+
+const REPEAT_LABEL = { daily:'매일', weekly:'매주', monthly:'매월', yearly:'매년' };
+
+// 반복 규칙이 특정 날짜(y,m,d)에 발생하는지
+function recurOccursOn(rule, y, m, d) {
+  const target = new Date(y, m - 1, d);
+  const start  = new Date(rule.sy, rule.sm - 1, rule.sd);
+  if (target < start) return false;
+  switch (rule.repeat) {
+    case 'daily':   return true;
+    case 'weekly':  return target.getDay() === start.getDay();
+    case 'monthly': return d === rule.sd;
+    case 'yearly':  return m === rule.sm && d === rule.sd;
+  }
+  return false;
+}
+
+// 해당 날짜에 발생하는 반복 규칙들 [{id, ...rule}]
+function recurItemsFor(y, m, d) {
+  const rules = appData.schedule_recurring || {};
+  const out = [];
+  Object.entries(rules).forEach(([id, r]) => {
+    if (recurOccursOn(r, y, m, d)) out.push({ id, ...r });
+  });
+  return out;
+}
+
 function openScheduleEdit(dayStr, id) {
   const key = ym(scheduleYear, scheduleMonth);
   const item = ((appData.schedule || {})[key] || {})[dayStr]?.[id] || {};
@@ -1404,6 +1462,7 @@ function openScheduleEdit(dayStr, id) {
   document.getElementById('schedule-input').value = item.title || '';
   document.getElementById('sched-save-btn').textContent = '수정 완료';
   document.getElementById('sched-del-btn').style.display = 'inline-flex';
+  document.getElementById('sched-repeat-group').style.display = 'none';
   selectSchedWho(item.who || '');
 }
 
@@ -1417,6 +1476,12 @@ function saveSchedule() {
   if (editingScheduleId) {
     db.ref(`${room}/schedule/${key}/${dayStr}/${editingScheduleId}`).update(data)
       .then(() => { editingScheduleId = null; onScheduleDayClick(null, editingScheduleDay); showToast('수정했어요 ✏️'); })
+      .catch(e => showToast('저장 실패: ' + e.message));
+  } else if (schedRepeat !== 'none') {
+    const rule = { title, repeat: schedRepeat, sy: scheduleYear, sm: scheduleMonth, sd: editingScheduleDay, ts: Date.now() };
+    if (schedWho) rule.who = schedWho;
+    db.ref(`${room}/schedule_recurring`).push(rule)
+      .then(() => { closeModal('schedule-overlay'); renderScheduleCal(); showToast(`${REPEAT_LABEL[schedRepeat]} 반복 일정을 추가했어요 🔁`); })
       .catch(e => showToast('저장 실패: ' + e.message));
   } else {
     db.ref(`${room}/schedule/${key}/${dayStr}`).push(data)
@@ -1437,6 +1502,12 @@ function deleteSchedule(dayStr, id) {
   const key = ym(scheduleYear, scheduleMonth);
   db.ref(`${room}/schedule/${key}/${dayStr}/${id}`).remove()
     .then(() => { editingScheduleId = null; showToast('삭제했어요'); onScheduleDayClick(null, Number(dayStr)); });
+}
+
+function deleteRecurring(id) {
+  if (!confirm('이 반복 일정 전체를 삭제할까요?')) return;
+  db.ref(`${room}/schedule_recurring/${id}`).remove()
+    .then(() => { showToast('반복 일정을 삭제했어요'); renderScheduleCal(); onScheduleDayClick(null, editingScheduleDay); });
 }
 
 function openScheduleMove(dayStr, id) {

@@ -1,4 +1,4 @@
-const CACHE = 'our-diary-v19';
+const CACHE = 'our-diary-v20';
 const ASSETS = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', e => {
