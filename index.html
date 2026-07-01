@@ -623,6 +623,23 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
   </div>
 </div>
 
+<!-- Recurring Delete Choice Modal -->
+<div class="overlay" id="recur-del-overlay" onclick="overlayClickClose(event,'recur-del-overlay')">
+  <div class="sheet" style="max-height:340px">
+    <div class="sheet-handle" onclick="closeModal('recur-del-overlay')" style="cursor:pointer;padding:4px 0"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <h2 style="margin-bottom:0">🔁 반복 일정 삭제</h2>
+      <button onclick="closeModal('recur-del-overlay')" style="background:none;border:none;font-size:22px;color:#bbb;cursor:pointer;padding:4px;line-height:1">✕</button>
+    </div>
+    <p style="color:var(--gray);font-size:13px;margin:0 0 14px">어떻게 삭제할까요?</p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn btn-gray" onclick="recurDelete('one')">이 일정만 삭제</button>
+      <button class="btn btn-gray" onclick="recurDelete('after')">이 일정 이후 모두 삭제</button>
+      <button class="btn btn-danger" onclick="recurDelete('all')">전체 반복 일정 삭제</button>
+    </div>
+  </div>
+</div>
+
 <!-- Recipe Add/Edit Modal -->
 <div class="overlay" id="recipe-overlay" onclick="overlayClickClose(event,'recipe-overlay')">
   <div class="sheet">
@@ -1407,7 +1424,7 @@ function onScheduleDayClick(event, d) {
       <div class="exp-item">
         <div class="exp-cat-icon" style="display:flex;align-items:center">${who}</div>
         <div class="exp-info"><div class="exp-desc">🔁 ${escHtml(item.title||'')}<span style="font-size:11px;color:var(--gray);margin-left:5px">${REPEAT_LABEL[item.repeat]||''} 반복</span></div></div>
-        <button class="exp-del" onclick="deleteRecurring('${item.id}')" title="반복 삭제">✕</button>
+        <button class="exp-del" onclick="openRecurDelete('${item.id}')" title="반복 삭제">✕</button>
       </div>`;
     }).join('');
     list.innerHTML = normalHtml + recurHtml;
@@ -1436,6 +1453,11 @@ function recurOccursOn(rule, y, m, d) {
   const target = new Date(y, m - 1, d);
   const start  = new Date(rule.sy, rule.sm - 1, rule.sd);
   if (target < start) return false;
+  const ds = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  // until: 이 날짜(포함) 이후로는 발생 안 함
+  if (rule.until && ds >= rule.until) return false;
+  // skip: 개별 제외된 날짜
+  if (rule.skip && rule.skip[ds]) return false;
   switch (rule.repeat) {
     case 'daily':   return true;
     case 'weekly':  return target.getDay() === start.getDay();
@@ -1504,10 +1526,35 @@ function deleteSchedule(dayStr, id) {
     .then(() => { editingScheduleId = null; showToast('삭제했어요'); onScheduleDayClick(null, Number(dayStr)); });
 }
 
-function deleteRecurring(id) {
-  if (!confirm('이 반복 일정 전체를 삭제할까요?')) return;
-  db.ref(`${room}/schedule_recurring/${id}`).remove()
-    .then(() => { showToast('반복 일정을 삭제했어요'); renderScheduleCal(); onScheduleDayClick(null, editingScheduleDay); });
+let recurDelId = null, recurDelDate = null;
+
+function openRecurDelete(id) {
+  recurDelId = id;
+  recurDelDate = `${scheduleYear}-${String(scheduleMonth).padStart(2,'0')}-${String(editingScheduleDay).padStart(2,'0')}`;
+  openModal('recur-del-overlay');
+}
+
+function recurDelete(mode) {
+  const id = recurDelId, date = recurDelDate;
+  if (!id) return;
+  let op, msg;
+  if (mode === 'one') {
+    op = db.ref(`${room}/schedule_recurring/${id}/skip/${date}`).set(true);
+    msg = '이 날 일정만 삭제했어요';
+  } else if (mode === 'after') {
+    op = db.ref(`${room}/schedule_recurring/${id}/until`).set(date);
+    msg = '이 일정 이후를 삭제했어요';
+  } else { // all
+    op = db.ref(`${room}/schedule_recurring/${id}`).remove();
+    msg = '반복 일정 전체를 삭제했어요';
+  }
+  op.then(() => {
+    closeModal('recur-del-overlay');
+    recurDelId = null;
+    showToast(msg);
+    renderScheduleCal();
+    onScheduleDayClick(null, editingScheduleDay);
+  }).catch(e => showToast('삭제 실패: ' + e.message));
 }
 
 function openScheduleMove(dayStr, id) {
