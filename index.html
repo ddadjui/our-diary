@@ -532,6 +532,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
         <div class="cat-chip" data-cat="쿠팡카드" onclick="selectCat(this)">쿠팡카드</div>
         <div class="cat-chip" data-cat="공금지출" onclick="selectCat(this)">공금지출</div>
         <div class="cat-chip" data-cat="땃쥐대신" onclick="selectCat(this)">땃쥐대신</div>
+        <div class="cat-chip" data-cat="주머니쥐대신" onclick="selectCat(this)">주머니쥐대신</div>
         <div class="cat-chip" data-cat="미용/화장품" onclick="selectCat(this)">미용/화장품</div>
         <div class="cat-chip" data-cat="통신비" onclick="selectCat(this)">통신비</div>
         <div class="cat-chip" data-cat="기타" onclick="selectCat(this)">기타</div>
@@ -735,6 +736,7 @@ const CAT_PATHS = {
   쿠팡카드: '<rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M3 10h18"/>',
   공금지출: '<circle cx="9.5" cy="12" r="5.5"/><circle cx="14.5" cy="12" r="5.5"/>',
   땃쥐대신: '<path d="M5 8l1.6-3.2L9 7h6l2.4-2.2L19 8v5.5a7 7 0 0 1-14 0V8Z"/><circle cx="9.7" cy="12" r=".7" fill="currentColor" stroke="none"/><circle cx="14.3" cy="12" r=".7" fill="currentColor" stroke="none"/>',
+  주머니쥐대신: '<circle cx="12" cy="13.5" r="6"/><circle cx="7" cy="7.5" r="2.6"/><circle cx="17" cy="7.5" r="2.6"/><circle cx="10" cy="13" r=".7" fill="currentColor" stroke="none"/><circle cx="14" cy="13" r=".7" fill="currentColor" stroke="none"/>',
   '미용/화장품': '<rect x="9" y="9" width="6" height="11" rx="1.5"/><path d="M10 9V5.5a2 2 0 0 1 4 0V9"/>',
   통신비: '<path d="M5 18v-3M10 18v-6M15 18v-9M20 18V6"/>',
   기타: '<circle cx="6" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.3" fill="currentColor" stroke="none"/>'
@@ -1880,12 +1882,15 @@ function renderSettle() {
   // 땃쥐대신 category: boy paid girl's personal expense (e.g. 전기세) — direct debt from girl to boy
   const boyForGirlItems = boyItems.filter(i => i.cat === '땃쥐대신');
   const boyForGirlAmt   = boyForGirlItems.reduce((s,i) => s + Number(i.amount||0), 0);
-  // 땃쥐→주머니쥐 순이체액: 공금 납부(공금계좌=주머니쥐) + 환급 + 대신납부 + 쿠팡카드 모두 반영, 음수면 반대 방향
-  const girlToBoyTotal  = girlSharedExtra - Math.min(boySharedExtra, 0) + boyForGirlAmt + girlCoupangExp;
+  // 주머니쥐대신 category: girl paid boy's personal expense — direct debt from boy to girl
+  const girlForBoyItems = girlItems.filter(i => i.cat === '주머니쥐대신');
+  const girlForBoyAmt   = girlForBoyItems.reduce((s,i) => s + Number(i.amount||0), 0);
+  // 땃쥐→주머니쥐 순이체액: 공금 납부(공금계좌=주머니쥐) + 환급 + 대신납부(양방향) + 쿠팡카드 모두 반영, 음수면 반대 방향
+  const girlToBoyTotal  = girlSharedExtra - Math.min(boySharedExtra, 0) + boyForGirlAmt + girlCoupangExp - girlForBoyAmt;
 
   // Personal spending (informational only — no equalization, each pays their own)
   const boyPersonal  = boyTotal  - boyPublicCat - boyCoupangExp - boyForGirlAmt;
-  const girlPersonal = girlTotal - girlPublicCat - girlCoupangExp;
+  const girlPersonal = girlTotal - girlPublicCat - girlCoupangExp - girlForBoyAmt;
 
   // Cache for drill-down
   settleCache = {
@@ -1898,6 +1903,7 @@ function renderSettle() {
     girlPublicBoyItems, girlPublicCommonItems,
     boyCoupangExpItems, girlCoupangExpItems, boyCoupangExp, girlCoupangExp,
     boyForGirlItems, boyForGirlAmt,
+    girlForBoyItems, girlForBoyAmt,
     saboy: saboy2, sagirl: sagirl2, sacommon, totalCommon, commonEach,
     boyPublicCat, girlPublicCat, boyPublicCatGirl, girlPublicCatBoy,
     boySharedExtra, girlSharedExtra, boyPersonal, girlPersonal
@@ -1924,6 +1930,7 @@ function renderSettle() {
     ${boyForGirlAmt > 0 ? `<div ${tappable('boy-for-girl')}><span class="settle-label" style="font-size:12px;color:var(--pink);padding-left:12px">└ ${wrap(MC+'땃쥐 대신 납부')}</span><span class="settle-val" style="font-size:13px;color:var(--pink)">${fmt(boyForGirlAmt)}</span></div>` : ''}
     <div ${tappable('girl-total')}><span class="settle-label">${MC} 땃쥐</span><span class="settle-val">${fmt(girlTotal)}</span></div>
     ${girlPublicCat > 0 ? `<div ${tappable('girl-public')}><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 공금 선결제</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(girlPublicCat)}</span></div>` : ''}
+    ${girlForBoyAmt > 0 ? `<div ${tappable('girl-for-boy')}><span class="settle-label" style="font-size:12px;color:var(--pink);padding-left:12px">└ ${wrap(MM+'주머니쥐 대신 납부')}</span><span class="settle-val" style="font-size:13px;color:var(--pink)">${fmt(girlForBoyAmt)}</span></div>` : ''}
     <div ${tappable('shared-total')}><span class="settle-label">공금 탭</span><span class="settle-val">${fmt(sharedTotal)}</span></div>
     ${saboy2  > 0 ? `<div ${tappable('saboy')}><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 월세 (주머니쥐 담당)</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(saboy2)}</span></div>` : ''}
     ${sagirl2 > 0 ? `<div ${tappable('sagirl')}><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 관리비·공과금 (땃쥐 담당)</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(sagirl2)}</span></div>` : ''}
@@ -1946,6 +1953,7 @@ function renderSettle() {
     ${boySharedExtra > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px">${wrap(MM+'주머니쥐 → 공금 계좌')}</span><span class="settle-val">${fmt(boySharedExtra)}</span></div>` : boySharedExtra < 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px;color:var(--blue)">${wrap(MC+'땃쥐 → '+MM+'주머니쥐 (공금 과납 환급)')}</span><span class="settle-val" style="color:var(--blue)">${fmt(-boySharedExtra)}</span></div>` : ''}
     ${girlSharedExtra > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px">${wrap(MC+'땃쥐 → 공금 계좌')}</span><span class="settle-val">${fmt(girlSharedExtra)}</span></div>` : girlSharedExtra < 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px;color:var(--blue)">${wrap(MM+'주머니쥐 → '+MC+'땃쥐 (공금 과납 환급)')}</span><span class="settle-val" style="color:var(--blue)">${fmt(-girlSharedExtra)}</span></div>` : ''}
     ${boyForGirlAmt > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px">${wrap(MC+'땃쥐 → '+MM+'주머니쥐 (대신 납부)')}</span><span class="settle-val" style="color:var(--pink)">${fmt(boyForGirlAmt)}</span></div>` : ''}
+    ${girlForBoyAmt > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px">${wrap(MM+'주머니쥐 → '+MC+'땃쥐 (대신 납부)')}</span><span class="settle-val" style="color:var(--blue)">${fmt(girlForBoyAmt)}</span></div>` : ''}
     ${girlCoupangExp > 0 ? `<div class="settle-row"><span class="settle-label" style="font-size:13px">${wrap(MC+'땃쥐 → '+MM+'주머니쥐 (쿠팡카드)')}</span><span class="settle-val" style="color:var(--pink)">${fmt(girlCoupangExp)}</span></div>` : ''}
     ${girlToBoyTotal > 0 ? `<div class="settle-row" style="border-top:2px solid var(--pink-border);margin-top:4px;padding-top:8px"><span class="settle-label" style="font-size:13px;font-weight:700;color:var(--pink)">${wrap(MC+'땃쥐 → '+MM+'주머니쥐 총 이체액')}</span><span class="settle-val" style="color:var(--pink);font-size:16px;font-weight:700">${fmt(girlToBoyTotal)}</span></div>` : girlToBoyTotal < 0 ? `<div class="settle-row" style="border-top:2px solid #DCE6F7;margin-top:4px;padding-top:8px"><span class="settle-label" style="font-size:13px;font-weight:700;color:var(--blue)">${wrap(MM+'주머니쥐 → '+MC+'땃쥐 총 이체액')}</span><span class="settle-val" style="color:var(--blue);font-size:16px;font-weight:700">${fmt(-girlToBoyTotal)}</span></div>` : ''}
   </div>
@@ -2028,7 +2036,7 @@ function openSettleDetail(type) {
       break;
     case 'girl-personal':
       title = mascot('cat',18)+'땃쥐 개인 지출';
-      body = itemRows(c.girlItems.filter(i => i.cat !== '공금지출' && i.cat !== '쿠팡카드'));
+      body = itemRows(c.girlItems.filter(i => i.cat !== '공금지출' && i.cat !== '쿠팡카드' && i.cat !== '주머니쥐대신'));
       break;
     case 'boy-shared-formula':
       title = mascot('mouse',18)+'주머니쥐 공금 분담 계산';
@@ -2052,6 +2060,10 @@ function openSettleDetail(type) {
     case 'boy-for-girl':
       title = mascot('cat',18)+'땃쥐 대신 납부 내역';
       body = `<div style="font-size:12px;padding:8px 10px;background:var(--pink-light);border-radius:10px;color:var(--pink);margin-bottom:8px">주머니쥐가 대신 납부한 땃쥐 부담 항목입니다. 땃쥐가 주머니쥐에게 <b>${fmt(c.boyForGirlAmt)}</b> 이체해야 합니다.</div>` + itemRows(c.boyForGirlItems);
+      break;
+    case 'girl-for-boy':
+      title = mascot('mouse',18)+'주머니쥐 대신 납부 내역';
+      body = `<div style="font-size:12px;padding:8px 10px;background:#EAF0FA;border-radius:10px;color:var(--blue);margin-bottom:8px">💡 땃쥐가 대신 납부한 주머니쥐 부담 항목입니다. 주머니쥐가 땃쥐에게 <b>${fmt(c.girlForBoyAmt)}</b> 이체해야 합니다.</div>` + itemRows(c.girlForBoyItems);
       break;
     case 'boy-coupang-exp':
       title = mascot('mouse',18)+'주머니쥐 쿠팡카드 사용 내역';
