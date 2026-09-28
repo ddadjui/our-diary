@@ -2148,8 +2148,14 @@ function openModal(id) {
 function closeModal(id) {
   document.getElementById(id).classList.remove('active');
 }
+let overlayMouseDownTarget = null;
+document.addEventListener('mousedown', e => { overlayMouseDownTarget = e.target; }, true);
+
 function overlayClickClose(event, id) {
-  if (event.target === document.getElementById(id)) closeModal(id);
+  const overlay = document.getElementById(id);
+  // 오버레이 자체에서 눌러서(mousedown) 오버레이에서 뗐을 때만 닫기.
+  // (입력창 안에서 드래그하다 오버레이 위에서 손을 떼는 경우엔 닫지 않음)
+  if (event.target === overlay && overlayMouseDownTarget === overlay) closeModal(id);
 }
 
 // ══════════════════════════════════════════════
