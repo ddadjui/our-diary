@@ -1840,6 +1840,9 @@ function renderSettle() {
     else if (GIRL_SHARED_KW.some(kw => d.includes(kw))) sagirlItems.push(item);
     else                                                  sacommonItems.push(item);
   });
+  // 관리비: 매달 고정 10만원 (땃쥐 담당)
+  const GIRL_FIXED_MAINT = 100000;
+  sagirlItems.push({ desc:'관리비 (매달 고정)', amount: GIRL_FIXED_MAINT, cat:'관리비', date:'' });
   const saboy   = saboyItems.reduce((s,i) => s + Number(i.amount||0), 0);
   const sagirl  = sagirlItems.reduce((s,i) => s + Number(i.amount||0), 0);
   const sacommon = sacommonItems.reduce((s,i) => s + Number(i.amount||0), 0);
@@ -1942,13 +1945,6 @@ function renderSettle() {
     <h3>공금 분담</h3>
     ${sharedPayRow(MM+'주머니쥐', boySharedExtra, 'boy-shared-formula')}
     ${sharedPayRow(MC+'땃쥐',    girlSharedExtra, 'girl-shared-formula')}
-  </div>
-  <div class="settle-card">
-    <h3>개인 지출 내역 <span style="font-size:11px;color:var(--gray);font-weight:400">(각자 부담, 정산 없음)</span></h3>
-    <div ${tappable('boy-personal')}><span class="settle-label">${MM} 주머니쥐</span><span class="settle-val" style="color:var(--gray)">${fmt(boyPersonal)}</span></div>
-    ${boyCoupangExp > 0 ? `<div ${tappable('boy-coupang-exp')}><span class="settle-label" style="font-size:12px;color:var(--gray);padding-left:12px">└ 쿠팡카드 사용</span><span class="settle-val" style="font-size:13px;color:var(--gray)">${fmt(boyCoupangExp)}</span></div>` : ''}
-    <div ${tappable('girl-personal')}><span class="settle-label">${MC} 땃쥐</span><span class="settle-val" style="color:var(--gray)">${fmt(girlPersonal)}</span></div>
-    ${girlCoupangExp > 0 ? `<div ${tappable('girl-coupang-exp')}><span class="settle-label" style="font-size:12px;color:var(--pink);padding-left:12px">└ 쿠팡카드 → 주머니쥐 별도 이체</span><span class="settle-val" style="font-size:13px;color:var(--pink)">${fmt(girlCoupangExp)}</span></div>` : ''}
   </div>
   <div class="settle-card">
     <h3>당월 정산 기록</h3>
