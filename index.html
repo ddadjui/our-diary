@@ -702,6 +702,21 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
   </div>
 </div>
 
+<!-- Category Items Modal -->
+<div class="overlay" id="cat-items-overlay" style="z-index:210" onclick="overlayClickClose(event,'cat-items-overlay')">
+  <div class="sheet">
+    <div class="sheet-handle" onclick="closeModal('cat-items-overlay')" style="cursor:pointer;padding:4px 0"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <h2 id="cat-items-title" style="margin-bottom:0"></h2>
+      <button onclick="closeModal('cat-items-overlay')" style="background:none;border:none;font-size:22px;color:#bbb;cursor:pointer;padding:4px;line-height:1">✕</button>
+    </div>
+    <div id="cat-items-content" style="max-height:58vh;overflow-y:auto;margin-top:12px"></div>
+    <div class="btn-row" style="margin-top:16px">
+      <button class="btn btn-gray" onclick="closeModal('cat-items-overlay')">닫기</button>
+    </div>
+  </div>
+</div>
+
 <!-- Settle Detail -->
 <div class="overlay" id="settle-detail-overlay" onclick="overlayClickClose(event,'settle-detail-overlay')">
   <div class="sheet">
@@ -1840,9 +1855,6 @@ function renderSettle() {
     else if (GIRL_SHARED_KW.some(kw => d.includes(kw))) sagirlItems.push(item);
     else                                                  sacommonItems.push(item);
   });
-  // 관리비: 매달 고정 10만원 (땃쥐 담당)
-  const GIRL_FIXED_MAINT = 100000;
-  sagirlItems.push({ desc:'관리비 (매달 고정)', amount: GIRL_FIXED_MAINT, cat:'관리비', date:'' });
   const saboy   = saboyItems.reduce((s,i) => s + Number(i.amount||0), 0);
   const sagirl  = sagirlItems.reduce((s,i) => s + Number(i.amount||0), 0);
   const sacommon = sacommonItems.reduce((s,i) => s + Number(i.amount||0), 0);
@@ -1885,7 +1897,9 @@ function renderSettle() {
   const girlCoupangExp = girlCoupangExpItems.reduce((s,i) => s + Number(i.amount||0), 0);
 
   // 땃쥐대신 category: boy paid girl's personal expense (e.g. 전기세) — direct debt from girl to boy
-  const boyForGirlItems = boyItems.filter(i => i.cat === '땃쥐대신');
+  // 관리비: 매달 고정 10만원 — 주머니쥐가 땃쥐 대신 납부 (땃쥐대신으로 처리)
+  const MAINT_FIXED = 100000;
+  const boyForGirlItems = [...boyItems.filter(i => i.cat === '땃쥐대신'), { desc:'관리비 (매달 고정)', amount: MAINT_FIXED, cat:'땃쥐대신', date:'' }];
   const boyForGirlAmt   = boyForGirlItems.reduce((s,i) => s + Number(i.amount||0), 0);
   // 주머니쥐대신 category: girl paid boy's personal expense — direct debt from boy to girl
   const girlForBoyItems = girlItems.filter(i => i.cat === '주머니쥐대신');
@@ -2115,7 +2129,7 @@ function openCategoryBreakdown() {
     : sorted.map(([cat, amt]) => {
         const pct = total > 0 ? Math.round(amt / total * 100) : 0;
         return `
-          <div class="cat-breakdown-row">
+          <div class="cat-breakdown-row" onclick="openCatItems('${cat}')" style="cursor:pointer">
             <span class="cat-breakdown-icon" style="display:inline-flex;align-items:center">${catIcon(cat, 22)}</span>
             <div style="flex:1;min-width:0">
               <div style="display:flex;justify-content:space-between;align-items:baseline">
@@ -2129,10 +2143,38 @@ function openCategoryBreakdown() {
                 <div class="cat-breakdown-bar" style="width:${pct}%"></div>
               </div>
             </div>
+            <span style="color:#ccc;font-size:17px;flex-shrink:0">›</span>
           </div>`;
       }).join('');
 
   openModal('cat-breakdown-overlay');
+}
+
+function openCatItems(cat) {
+  const key = ym(expenseYear, expenseMonth);
+  const tabData = ((appData.expenses || {})[expenseTab] || {})[key] || {};
+  const rows = [];
+  Object.entries(tabData).forEach(([dayStr, dayItems]) => {
+    if (typeof dayItems !== 'object') return;
+    Object.values(dayItems).forEach(item => {
+      if ((item.cat || '기타') === cat) rows.push({ day: parseInt(dayStr) || 0, desc: item.desc || '', amount: Number(item.amount || 0) });
+    });
+  });
+  rows.sort((a, b) => a.day - b.day);
+  const totalC = rows.reduce((s, r) => s + r.amount, 0);
+  document.getElementById('cat-items-title').innerHTML = `<span style="display:inline-flex;align-items:center;gap:6px">${catIcon(cat, 20)}${cat}</span>`;
+  document.getElementById('cat-items-content').innerHTML = rows.length === 0
+    ? '<div class="empty-msg">내역이 없어요</div>'
+    : rows.map(r => `
+        <div class="exp-item">
+          <div class="exp-info" style="flex:1;min-width:0">
+            <div class="exp-desc">${escHtml(r.desc || '(내용 없음)')}</div>
+            <div style="font-size:11px;color:var(--gray)">${expenseMonth}월 ${r.day}일</div>
+          </div>
+          <div class="exp-amount">${fmt(r.amount)}</div>
+        </div>`).join('') +
+      `<div class="settle-row" style="border-top:2px solid #eee;margin-top:6px;padding-top:8px"><span class="settle-label" style="font-weight:700">합계</span><span class="settle-val" style="font-weight:700;color:var(--pink)">${fmt(totalC)}</span></div>`;
+  openModal('cat-items-overlay');
 }
 
 // ══════════════════════════════════════════════
